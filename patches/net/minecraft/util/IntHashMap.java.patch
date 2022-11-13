@@ -1,0 +1,83 @@
+--- ../src-base/minecraft/net/minecraft/util/IntHashMap.java
++++ ../src-work/minecraft/net/minecraft/util/IntHashMap.java
+@@ -21,7 +21,7 @@
+     }
+ 
+     @Nullable
+-    public V lookup(int hashEntry)
++    public synchronized V lookup(int hashEntry)
+     {
+         int i = computeHash(hashEntry);
+ 
+@@ -36,7 +36,7 @@
+         return (V)null;
+     }
+ 
+-    public boolean containsItem(int hashEntry)
++    public synchronized boolean containsItem(int hashEntry)
+     {
+         return this.lookupEntry(hashEntry) != null;
+     }
+@@ -57,7 +57,7 @@
+         return null;
+     }
+ 
+-    public void addKey(int hashEntry, V valueEntry)
++    public synchronized void addKey(int hashEntry, V valueEntry)
+     {
+         int i = computeHash(hashEntry);
+         int j = getSlotIndex(i, this.slots.length);
+@@ -123,7 +123,7 @@
+     }
+ 
+     @Nullable
+-    public V removeObject(int o)
++    public synchronized V removeObject(int o)
+     {
+         IntHashMap.Entry<V> entry = this.removeEntry(o);
+         return (V)(entry == null ? null : entry.valueEntry);
+@@ -164,7 +164,7 @@
+         return entry1;
+     }
+ 
+-    public void clearMap()
++    public synchronized void clearMap()
+     {
+         IntHashMap.Entry<V>[] entry = this.slots;
+ 
+@@ -202,17 +202,17 @@
+                 this.slotHash = p_i1552_1_;
+             }
+ 
+-            public final int getHash()
++            public synchronized final int getHash()
+             {
+                 return this.hashEntry;
+             }
+ 
+-            public final V getValue()
++            public synchronized final V getValue()
+             {
+                 return this.valueEntry;
+             }
+ 
+-            public final boolean equals(Object p_equals_1_)
++            public synchronized final boolean equals(Object p_equals_1_)
+             {
+                 if (!(p_equals_1_ instanceof IntHashMap.Entry))
+                 {
+@@ -237,12 +237,12 @@
+                 }
+             }
+ 
+-            public final int hashCode()
++            public synchronized final int hashCode()
+             {
+                 return IntHashMap.computeHash(this.hashEntry);
+             }
+ 
+-            public final String toString()
++            public synchronized final String toString()
+             {
+                 return this.getHash() + "=" + this.getValue();
+             }

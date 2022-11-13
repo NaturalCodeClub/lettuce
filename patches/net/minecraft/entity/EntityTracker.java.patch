@@ -1,0 +1,161 @@
+--- ../src-base/minecraft/net/minecraft/entity/EntityTracker.java
++++ ../src-work/minecraft/net/minecraft/entity/EntityTracker.java
+@@ -4,6 +4,8 @@
+ import com.google.common.collect.Sets;
+ import java.util.List;
+ import java.util.Set;
++
++import gg.m2ke4u.lutils.threading.traversing.CollectionConcurrentUtils;
+ import net.minecraft.crash.CrashReport;
+ import net.minecraft.crash.CrashReportCategory;
+ import net.minecraft.crash.ICrashReportDetail;
+@@ -38,6 +40,7 @@
+ import net.minecraft.network.Packet;
+ import net.minecraft.network.play.server.SPacketEntityAttach;
+ import net.minecraft.network.play.server.SPacketSetPassengers;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.util.IntHashMap;
+ import net.minecraft.util.ReportedException;
+ import net.minecraft.util.math.MathHelper;
+@@ -52,14 +55,14 @@
+ {
+     private static final Logger LOGGER = LogManager.getLogger();
+     private final WorldServer world;
+-    private final Set<EntityTrackerEntry> entries = Sets.<EntityTrackerEntry>newHashSet();
+-    private final IntHashMap<EntityTrackerEntry> trackedEntityHashTable = new IntHashMap<EntityTrackerEntry>();
++    private final Set<EntityTrackerEntry> entries = Sets.<EntityTrackerEntry>newConcurrentHashSet();
++    public final IntHashMap<EntityTrackerEntry> trackedEntityHashTable = new IntHashMap<EntityTrackerEntry>();
+     private int maxTrackingDistanceThreshold;
+ 
+     public EntityTracker(WorldServer theWorldIn)
+     {
+         this.world = theWorldIn;
+-        this.maxTrackingDistanceThreshold = theWorldIn.getMinecraftServer().getPlayerList().getEntityViewDistance();
++        this.maxTrackingDistanceThreshold = net.minecraft.server.management.PlayerChunkMap.getFurthestViewableBlock(theWorldIn.spigotConfig.viewDistance); // Spigot
+     }
+ 
+     public static long getPositionLong(double value)
+@@ -77,6 +80,8 @@
+ 
+     public void track(Entity entityIn)
+     {
++        if (net.minecraftforge.fml.common.registry.EntityRegistry.instance().tryTrackingEntity(this, entityIn)) return;
++
+         if (entityIn instanceof EntityPlayerMP)
+         {
+             this.track(entityIn, 512, 2);
+@@ -196,7 +201,7 @@
+         }
+         else if (entityIn instanceof EntityAreaEffectCloud)
+         {
+-            this.track(entityIn, 160, Integer.MAX_VALUE, true);
++            this.track(entityIn, 160, 10 /*Integer.MAX_VALUE*/, true); // CraftBukkit
+         }
+         else if (entityIn instanceof EntityEnderCrystal)
+         {
+@@ -215,11 +220,13 @@
+ 
+     public void track(Entity entityIn, int trackingRange, final int updateFrequency, boolean sendVelocityUpdates)
+     {
++        org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
++        trackingRange = org.spigotmc.TrackingRange.getEntityTrackingRange(entityIn, trackingRange); // Spigot
+         try
+         {
+             if (this.trackedEntityHashTable.containsItem(entityIn.getEntityId()))
+             {
+-                throw new IllegalStateException("Entity is already tracked!");
++                return;
+             }
+ 
+             EntityTrackerEntry entitytrackerentry = new EntityTrackerEntry(entityIn, trackingRange, this.maxTrackingDistanceThreshold, updateFrequency, sendVelocityUpdates);
+@@ -262,6 +269,7 @@
+ 
+     public void untrack(Entity entityIn)
+     {
++        org.spigotmc.AsyncCatcher.catchOp("entity untrack"); // Spigot
+         if (entityIn instanceof EntityPlayerMP)
+         {
+             EntityPlayerMP entityplayermp = (EntityPlayerMP)entityIn;
+@@ -283,35 +291,26 @@
+ 
+     public void tick()
+     {
+-        List<EntityPlayerMP> list = Lists.<EntityPlayerMP>newArrayList();
+-
+-        for (EntityTrackerEntry entitytrackerentry : this.entries)
+-        {
++        CollectionConcurrentUtils.traverseConcurrent(this.entries,entitytrackerentry->{
+             entitytrackerentry.updatePlayerList(this.world.playerEntities);
+-
+             if (entitytrackerentry.playerEntitiesUpdated)
+             {
+                 Entity entity = entitytrackerentry.getTrackedEntity();
+ 
+                 if (entity instanceof EntityPlayerMP)
+                 {
+-                    list.add((EntityPlayerMP)entity);
+-                }
+-            }
+-        }
++                    EntityPlayerMP entityplayermp = ((EntityPlayerMP) entity);
+ 
+-        for (int i = 0; i < list.size(); ++i)
+-        {
+-            EntityPlayerMP entityplayermp = list.get(i);
+-
+-            for (EntityTrackerEntry entitytrackerentry1 : this.entries)
+-            {
+-                if (entitytrackerentry1.getTrackedEntity() != entityplayermp)
+-                {
+-                    entitytrackerentry1.updatePlayerEntity(entityplayermp);
++                    for (EntityTrackerEntry entitytrackerentry1 : this.entries)
++                    {
++                        if (entitytrackerentry1.getTrackedEntity() != entityplayermp)
++                        {
++                            entitytrackerentry1.updatePlayerEntity(entityplayermp);
++                        }
++                    }
+                 }
+             }
+-        }
++        }, MinecraftServer.GLOBAL_EXECUTOR);
+     }
+ 
+     public void updateVisibility(EntityPlayerMP player)
+@@ -339,6 +338,25 @@
+         }
+     }
+ 
++    /* ======================================== FORGE START =====================================*/
++
++    // don't expose the EntityTrackerEntry directly so mods can't mess with the data in there as easily
++    /**
++     * Get all players tracking the given Entity. The Entity must be part of the World that this Tracker belongs to.
++     * @param entity the Entity
++     * @return all players tracking the Entity
++     */
++    public Set<? extends net.minecraft.entity.player.EntityPlayer> getTrackingPlayers(Entity entity)
++    {
++        EntityTrackerEntry entry = (EntityTrackerEntry) trackedEntityHashTable.lookup(entity.getEntityId());
++        if (entry == null)
++            return java.util.Collections.emptySet();
++        else
++            return java.util.Collections.unmodifiableSet(entry.trackingPlayers);
++    }
++
++    /* ======================================== FORGE END   =====================================*/
++
+     public void sendToTrackingAndSelf(Entity entityIn, Packet<?> packetIn)
+     {
+         EntityTrackerEntry entitytrackerentry = this.trackedEntityHashTable.lookup(entityIn.getEntityId());
+@@ -359,8 +377,8 @@
+ 
+     public void sendLeashedEntitiesInChunk(EntityPlayerMP player, Chunk chunkIn)
+     {
+-        List<Entity> list = Lists.<Entity>newArrayList();
+-        List<Entity> list1 = Lists.<Entity>newArrayList();
++        List<Entity> list = Lists.<Entity>newCopyOnWriteArrayList();
++        List<Entity> list1 = Lists.<Entity>newCopyOnWriteArrayList();
+ 
+         for (EntityTrackerEntry entitytrackerentry : this.entries)
+         {

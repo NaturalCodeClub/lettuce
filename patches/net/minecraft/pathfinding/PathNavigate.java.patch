@@ -1,0 +1,67 @@
+--- ../src-base/minecraft/net/minecraft/pathfinding/PathNavigate.java
++++ ../src-work/minecraft/net/minecraft/pathfinding/PathNavigate.java
+@@ -20,13 +20,13 @@
+     protected EntityLiving entity;
+     protected World world;
+     @Nullable
+-    protected Path currentPath;
++    protected volatile Path currentPath;
+     protected double speed;
+-    private final IAttributeInstance pathSearchRange;
++    public final IAttributeInstance pathSearchRange;
+     protected int totalTicks;
+     private int ticksAtLastPos;
+-    private Vec3d lastPosCheck = Vec3d.ZERO;
+-    private Vec3d timeoutCachedNode = Vec3d.ZERO;
++    public Vec3d lastPosCheck = Vec3d.ZERO;
++    public Vec3d timeoutCachedNode = Vec3d.ZERO;
+     private long timeoutTimer;
+     private long lastTimeoutCheck;
+     private double timeoutLimit;
+@@ -68,8 +68,9 @@
+         {
+             if (this.targetPos != null)
+             {
+-                this.currentPath = null;
+-                this.currentPath = this.getPathToPos(this.targetPos);
++                synchronized (this){
++                    this.currentPath = this.getPathToPos(this.targetPos);
++                }
+                 this.lastTimeUpdated = this.world.getTotalWorldTime();
+                 this.tryUpdatePath = false;
+             }
+@@ -101,12 +102,10 @@
+         {
+             this.targetPos = pos;
+             float f = this.getPathSearchRange();
+-            this.world.profiler.startSection("pathfind");
+             BlockPos blockpos = new BlockPos(this.entity);
+             int i = (int)(f + 8.0F);
+             ChunkCache chunkcache = new ChunkCache(this.world, blockpos.add(-i, -i, -i), blockpos.add(i, i, i), 0);
+             Path path = this.pathFinder.findPath(chunkcache, this.entity, this.targetPos, f);
+-            this.world.profiler.endSection();
+             return path;
+         }
+     }
+@@ -130,12 +129,10 @@
+             {
+                 this.targetPos = blockpos;
+                 float f = this.getPathSearchRange();
+-                this.world.profiler.startSection("pathfind");
+                 BlockPos blockpos1 = (new BlockPos(this.entity)).up();
+                 int i = (int)(f + 16.0F);
+                 ChunkCache chunkcache = new ChunkCache(this.world, blockpos1.add(-i, -i, -i), blockpos1.add(i, i, i), 0);
+                 Path path = this.pathFinder.findPath(chunkcache, this.entity, entityIn, f);
+-                this.world.profiler.endSection();
+                 return path;
+             }
+         }
+@@ -258,7 +255,7 @@
+         int l = MathHelper.ceil(this.entity.height);
+         int i1 = k;
+ 
+-        for (int j1 = i - 1; j1 >= this.currentPath.getCurrentPathIndex(); --j1)
++        for (int j1 = i - 1; j1 >= this.currentPath.getCurrentPathIndex() && this.currentPath!=null; --j1)
+         {
+             if (this.isDirectPathBetweenPoints(vec3d, this.currentPath.getVectorFromIndex(this.entity, j1), k, l, i1))
+             {
