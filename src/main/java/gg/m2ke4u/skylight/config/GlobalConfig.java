@@ -7,7 +7,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 
 public class GlobalConfig {
-    public static final File CONFIG_DIR = new File("skylight-configs");
+    public static final File CONFIG_DIR = new File("lettuce-configs");
     public static final File CONFIG_FILE = new File(CONFIG_DIR,"global.yml");
     private static final Logger logger = LogManager.getLogger();
     public static final YamlConfiguration CONFIGURATION = new YamlConfiguration();

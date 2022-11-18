@@ -10,6 +10,7 @@ import java.util.concurrent.ForkJoinWorkerThread;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Deprecated
 public class WorkerWrapper {
     private static final AtomicInteger threadId = new AtomicInteger();
     private static final Set<Thread> workers = Sets.newConcurrentHashSet();

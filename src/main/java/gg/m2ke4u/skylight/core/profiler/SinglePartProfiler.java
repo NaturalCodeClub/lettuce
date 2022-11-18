@@ -1,7 +1,6 @@
 package gg.m2ke4u.skylight.core.profiler;
 
-import gg.m2ke4u.skylight.core.TickTask;
-
+@Deprecated
 public class SinglePartProfiler {
     private long avgTime;
     private int finishedTimes;

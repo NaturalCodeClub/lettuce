@@ -670,7 +670,7 @@
 -            int i = this.pendingTickListEntriesTreeSet.size();
 -
 -            if (i != this.pendingTickListEntriesHashSet.size())
-+            TreeSet<NextTickListEntry> tempCopy = new TreeSet<>(this.pendingTickListEntriesHashSet);
++            final TreeSet<NextTickListEntry> tempCopy = new TreeSet<>(this.pendingTickListEntriesHashSet);
 +            int i = tempCopy.size();
 +            if (i > 65536)
              {

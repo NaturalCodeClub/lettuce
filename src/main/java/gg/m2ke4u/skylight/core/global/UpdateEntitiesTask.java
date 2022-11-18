@@ -19,6 +19,10 @@ public final class UpdateEntitiesTask implements TickTask<World> {
     private volatile boolean terminated = false;
     private final SinglePartProfiler profiler = new SinglePartProfiler("ConcurrentEntities");
 
+    private static final SingleEntityTickTask entityTickTask = new SingleEntityTickTask();
+    private static final SingleTickableTileEntityTickTask tileTickTask = new SingleTickableTileEntityTickTask();
+    private static final SingleSimpleTileEntityTickTask addEdTileTickTask = new SingleSimpleTileEntityTickTask();
+
     public UpdateEntitiesTask(Executor executor){
         this.executor = executor;
     }
@@ -59,7 +63,6 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                 if (this.terminated){
                     return;
                 }
-                final SingleEntityTickTask entityTickTask = new SingleEntityTickTask();
                 entityTickTask.call(entity2);
             },this.executor);
 
@@ -81,8 +84,7 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                 if (this.terminated){
                     return;
                 }
-                final SingleTickableTileEntityTickTask tickableTileEntityTickTask = new SingleTickableTileEntityTickTask();
-                tickableTileEntityTickTask.call(tileentity);
+                tileTickTask.call(tileentity);
             },this.executor);
             input.processingLoadedTiles = false;
 
@@ -92,8 +94,7 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                     if (this.terminated){
                         return;
                     }
-                    final SingleSimpleTileEntityTickTask task = new SingleSimpleTileEntityTickTask();
-                    task.call(tileentity1);
+                   addEdTileTickTask.call(tileentity1);
                 },this.executor);
                 input.addedTileEntityList.clear();
             }

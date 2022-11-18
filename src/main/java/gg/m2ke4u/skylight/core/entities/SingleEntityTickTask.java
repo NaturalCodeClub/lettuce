@@ -6,45 +6,36 @@ import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.World;
 
 public final class SingleEntityTickTask implements TickTask<Entity> {
-    private volatile boolean finished = false;
-
     @Override
     public void call(Entity input) {
-        try {
-            final World world = input.world;
-            if(!world.entityLimiter.shouldContinue()){
+        final World world = input.world;
+        if (!world.entityLimiter.shouldContinue()) {
+            return;
+        }
+        Entity entity3 = input.getRidingEntity();
+        if (entity3 != null) {
+            if (!entity3.isDead && entity3.isPassenger(input)) {
                 return;
             }
-            Entity entity3 = input.getRidingEntity();
-            if (entity3 != null)
-            {
-                if (!entity3.isDead && entity3.isPassenger(input)) {
-                    return;
-                }
-                input.dismountRidingEntity();
+            input.dismountRidingEntity();
+        }
+        if (!input.isDead && !(input instanceof EntityPlayerMP)) {
+            world.updateEntity(input);
+        }
+        if (input.isDead) {
+            int l1 = input.chunkCoordX;
+            int i2 = input.chunkCoordZ;
+            if (input.addedToChunk && world.isChunkLoaded(l1, i2, true)) {
+                world.getChunkFromChunkCoords(l1, i2).removeEntity(input);
             }
-            if (!input.isDead && !(input instanceof EntityPlayerMP)) {
-                world.updateEntity(input);
-            }
-            if (input.isDead)
-            {
-                int l1 = input.chunkCoordX;
-                int i2 = input.chunkCoordZ;
-                if (input.addedToChunk && world.isChunkLoaded(l1, i2, true))
-                {
-                    world.getChunkFromChunkCoords(l1, i2).removeEntity(input);
-                }
-                world.loadedEntityList.remove(input); // CraftBukkit - Use field for loop variable
-                world.onEntityRemoved(input);
-            }
-        }finally {
-            this.finished = true;
+            world.loadedEntityList.remove(input); // CraftBukkit - Use field for loop variable
+            world.onEntityRemoved(input);
         }
     }
 
     @Override
     public boolean finished() {
-        return this.finished;
+        return true;
     }
 
     @Override
