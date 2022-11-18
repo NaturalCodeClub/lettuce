@@ -1,6 +1,15 @@
 --- ../src-base/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
 +++ ../src-work/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
-@@ -26,15 +26,18 @@
+@@ -11,6 +11,8 @@
+ import java.util.List;
+ import java.util.Set;
+ import javax.annotation.Nullable;
++
++import net.himeki.mcmtfabric.parallelised.fastutil.Long2ObjectOpenConcurrentHashMap;
+ import net.minecraft.crash.CrashReport;
+ import net.minecraft.crash.CrashReportCategory;
+ import net.minecraft.entity.EnumCreatureType;
+@@ -26,15 +28,18 @@
  import net.minecraft.world.chunk.storage.IChunkLoader;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
@@ -14,13 +23,14 @@
 +    public final Set<Long> droppedChunksSet = Sets.<Long>newConcurrentHashSet();
      public final IChunkGenerator chunkGenerator;
      public final IChunkLoader chunkLoader;
-     public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenHashMap<Chunk>(8192);
+-    public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenHashMap<Chunk>(8192);
++    public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenConcurrentHashMap<>(8192);
      public final WorldServer world;
 +    private final Set<Long> loadingChunks = com.google.common.collect.Sets.newConcurrentHashSet();
  
      public ChunkProviderServer(WorldServer worldObjIn, IChunkLoader chunkLoaderIn, IChunkGenerator chunkGeneratorIn)
      {
-@@ -82,23 +85,56 @@
+@@ -82,23 +87,56 @@
          return chunk;
      }
  
@@ -82,7 +92,7 @@
          return chunk;
      }
  
-@@ -108,6 +144,7 @@
+@@ -108,6 +146,7 @@
  
          if (chunk == null)
          {
@@ -90,7 +100,7 @@
              long i = ChunkPos.asLong(x, z);
  
              try
-@@ -126,7 +163,8 @@
+@@ -126,7 +165,8 @@
  
              this.id2ChunkMap.put(i, chunk);
              chunk.onLoad();
@@ -100,7 +110,7 @@
          }
  
          return chunk;
-@@ -218,36 +256,91 @@
+@@ -218,36 +258,91 @@
          this.chunkLoader.flush();
      }
  
