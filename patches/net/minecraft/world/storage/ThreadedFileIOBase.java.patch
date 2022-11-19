@@ -1,6 +1,6 @@
 --- ../src-base/minecraft/net/minecraft/world/storage/ThreadedFileIOBase.java
 +++ ../src-work/minecraft/net/minecraft/world/storage/ThreadedFileIOBase.java
-@@ -1,22 +1,25 @@
+@@ -1,22 +1,24 @@
  package net.minecraft.world.storage;
  
 -import com.google.common.collect.Lists;
@@ -15,11 +15,12 @@
  {
      private static final ThreadedFileIOBase INSTANCE = new ThreadedFileIOBase();
 -    private final List<IThreadedFileIO> threadedIOQueue = Collections.<IThreadedFileIO>synchronizedList(Lists.newArrayList());
-+    private final Queue<IThreadedFileIO> threadedIOQueue = Queues.newConcurrentLinkedQueue();
-     private volatile long writeQueuedCounter;
+-    private volatile long writeQueuedCounter;
 -    private volatile long savedIOCounter;
-+    private final AtomicLong savedIOCounter = new AtomicLong();
-     private volatile boolean isThreadWaiting;
+-    private volatile boolean isThreadWaiting;
++    private final Queue<IThreadedFileIO> threadedIOQueue = Queues.newConcurrentLinkedQueue();
++    private final AtomicLong activeCount = new AtomicLong();
++    private final Object waiter = new Object();
  
      private ThreadedFileIOBase()
      {
@@ -34,7 +35,7 @@
      }
  
      public static ThreadedFileIOBase getThreadedIOInstance()
-@@ -26,7 +29,7 @@
+@@ -26,7 +28,7 @@
  
      public void run()
      {
@@ -43,26 +44,26 @@
          {
              this.processQueue();
          }
-@@ -34,25 +37,17 @@
+@@ -34,32 +36,23 @@
  
      private void processQueue()
      {
 -        for (int i = 0; i < this.threadedIOQueue.size(); ++i)
 -        {
 -            IThreadedFileIO ithreadedfileio = this.threadedIOQueue.get(i);
+-            boolean flag = ithreadedfileio.writeNextIO();
+-
+-            if (!flag)
 +        IThreadedFileIO ithreadedfileio;
 +        while ((ithreadedfileio = this.threadedIOQueue.poll())!=null){
-             boolean flag = ithreadedfileio.writeNextIO();
- 
--            if (!flag)
-+            if (flag)
++            this.activeCount.getAndIncrement();
++            if (ithreadedfileio.writeNextIO())
              {
 -                this.threadedIOQueue.remove(i--);
 -                ++this.savedIOCounter;
 +                this.threadedIOQueue.add(ithreadedfileio);
-+                continue;
              }
- 
+-
 -            try
 -            {
 -                Thread.sleep(this.isThreadWaiting ? 0L : 10L);
@@ -71,16 +72,43 @@
 -            {
 -                interruptedexception1.printStackTrace();
 -            }
-+            this.savedIOCounter.getAndIncrement();
++            this.activeCount.getAndDecrement();
          }
  
          if (this.threadedIOQueue.isEmpty())
-@@ -81,7 +76,7 @@
-     {
-         this.isThreadWaiting = true;
- 
--        while (this.writeQueuedCounter != this.savedIOCounter)
-+        while (this.writeQueuedCounter != this.savedIOCounter.get())
          {
-             Thread.sleep(10L);
+             try
+             {
+-                Thread.sleep(25L);
++                synchronized (this.waiter){
++                    this.waiter.wait();
++                }
+             }
+             catch (InterruptedException interruptedexception)
+             {
+@@ -72,20 +65,17 @@
+     {
+         if (!this.threadedIOQueue.contains(fileIo))
+         {
+-            ++this.writeQueuedCounter;
+             this.threadedIOQueue.add(fileIo);
          }
+     }
+ 
+     public void waitForFinish() throws InterruptedException
+     {
+-        this.isThreadWaiting = true;
+-
+-        while (this.writeQueuedCounter != this.savedIOCounter)
+-        {
+-            Thread.sleep(10L);
++        synchronized (this.waiter){
++            while (this.activeCount.get() > 0)
++            {
++                this.waiter.wait();
++            }
+         }
+-
+-        this.isThreadWaiting = false;
+     }
+ }
