@@ -36,7 +36,7 @@ public class GlobalConfig {
 
                 CONFIGURATION.load(CONFIG_FILE);
                 CONFIGURATION.save(CONFIG_FILE);
-                logger.info("[skylight]Global config inited!");
+                logger.info("[lettuce]Global config inited!");
                 return;
             }
             CONFIGURATION.load(CONFIG_FILE);
@@ -46,7 +46,7 @@ public class GlobalConfig {
 
             FORGE_EVENT_RETURN_TO_MAIN = MISC_SECTION.getBoolean("forge-events-to-main");
             BUKKIT_EVENT_RETURN_TO_MAIN = MISC_SECTION.getBoolean("bukkit-events-to-main");
-            logger.info("[skylight]Global config loaded!");
+            logger.info("[lettuce]Global config loaded!");
         }catch (Exception e){
             logger.error(e);
         }

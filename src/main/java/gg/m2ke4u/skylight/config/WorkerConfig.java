@@ -16,6 +16,7 @@ public class WorkerConfig {
     public static boolean AUTO_CLEAR_WORKERS;
     public static boolean SYNC_ENTITIES;
     public static boolean ASYNC_CATCHER_DISABLED;
+    public static int IO_WORKER_THREADS;
 
     public static void init(){
         try{
@@ -28,6 +29,7 @@ public class WorkerConfig {
 
                 workerConfig.addDefault("entities-worker-threads",Runtime.getRuntime().availableProcessors());
                 workerConfig.addDefault("global-worker-threads",Runtime.getRuntime().availableProcessors());
+                workerConfig.addDefault("io-worker-threads",Runtime.getRuntime().availableProcessors()/2);
                 miscConfig.addDefault("auto-clear-workers",true);
                 miscConfig.addDefault("sync-entities-ticking",false);
                 miscConfig.addDefault("disable-async-catcher",false);
@@ -37,10 +39,11 @@ public class WorkerConfig {
                 AUTO_CLEAR_WORKERS = miscConfig.getBoolean("auto-clear-workers");
                 SYNC_ENTITIES = miscConfig.getBoolean("sync-entities-ticking");
                 ASYNC_CATCHER_DISABLED = miscConfig.getBoolean("disable-async-catcher");
+                IO_WORKER_THREADS = workerConfig.getInt("io-worker-threads");
 
                 CONFIGURATION.load(CONFIG_FILE);
                 CONFIGURATION.save(CONFIG_FILE);
-                logger.info("[skylight]Worker config inited!");
+                logger.info("[lettuce]Worker config inited!");
                 return;
             }
             CONFIGURATION.load(CONFIG_FILE);
@@ -52,7 +55,8 @@ public class WorkerConfig {
             AUTO_CLEAR_WORKERS = miscConfig.getBoolean("auto-clear-workers");
             SYNC_ENTITIES = miscConfig.getBoolean("sync-entities-ticking");
             ASYNC_CATCHER_DISABLED = miscConfig.getBoolean("disable-async-catcher");
-            logger.info("[skylight]Worker config loaded");
+            IO_WORKER_THREADS = workerConfig.getInt("io-worker-threads");
+            logger.info("[lettuce]Worker config loaded");
         }catch (Exception e){
             logger.error("Failed to create or load config file!",e);
         }
