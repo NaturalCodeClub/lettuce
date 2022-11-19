@@ -60,9 +60,47 @@
      }
  
      public WorldServer getWorldServer()
-@@ -157,6 +150,12 @@
+@@ -111,9 +104,7 @@
          {
-             long l = System.nanoTime() + 50000000L;
+             this.previousTotalWorldTime = i;
+ 
+-            for (int j = 0; j < this.entries.size(); ++j)
+-            {
+-                PlayerChunkMapEntry playerchunkmapentry = this.entries.get(j);
++            for (PlayerChunkMapEntry playerchunkmapentry : this.entries) {
+                 playerchunkmapentry.update();
+                 playerchunkmapentry.updateChunkInhabitedTime();
+             }
+@@ -132,31 +123,24 @@
+         if (this.sortMissingChunks && i % 4L == 0L)
+         {
+             this.sortMissingChunks = false;
+-            Collections.sort(this.entriesWithoutChunks, new Comparator<PlayerChunkMapEntry>()
+-            {
+-                public int compare(PlayerChunkMapEntry p_compare_1_, PlayerChunkMapEntry p_compare_2_)
+-                {
+-                    return ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result();
+-                }
+-            });
++            this.entriesWithoutChunks.sort((p_compare_1_, p_compare_2_) -> ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result());
+         }
+ 
+         if (this.sortSendToPlayers && i % 4L == 2L)
+         {
+             this.sortSendToPlayers = false;
+-            Collections.sort(this.pendingSendToPlayers, new Comparator<PlayerChunkMapEntry>()
+-            {
+-                public int compare(PlayerChunkMapEntry p_compare_1_, PlayerChunkMapEntry p_compare_2_)
+-                {
+-                    return ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result();
+-                }
+-            });
++            this.pendingSendToPlayers.sort((p_compare_1_, p_compare_2_) -> ComparisonChain.start().compare(p_compare_1_.getClosestPlayerDistance(), p_compare_2_.getClosestPlayerDistance()).result());
+         }
+ 
+         if (!this.entriesWithoutChunks.isEmpty())
+         {
+-            long l = System.nanoTime() + 50000000L;
              int k = 49;
 +
 +            // Spigot start
@@ -73,7 +111,7 @@
              Iterator<PlayerChunkMapEntry> iterator = this.entriesWithoutChunks.iterator();
  
              while (iterator.hasNext())
-@@ -178,13 +177,18 @@
+@@ -178,13 +162,18 @@
  
                          --k;
  
@@ -93,7 +131,7 @@
          }
  
          if (!this.pendingSendToPlayers.isEmpty())
-@@ -257,8 +261,17 @@
+@@ -257,8 +246,17 @@
          return playerchunkmapentry;
      }
  
@@ -111,7 +149,7 @@
          int i = pos.getX() >> 4;
          int j = pos.getZ() >> 4;
          PlayerChunkMapEntry playerchunkmapentry = this.getEntry(i, j);
-@@ -276,14 +289,22 @@
+@@ -276,14 +274,22 @@
          player.managedPosX = player.posX;
          player.managedPosZ = player.posZ;
  
@@ -135,7 +173,7 @@
          this.players.add(player);
          this.markSortPending();
      }
-@@ -341,6 +362,8 @@
+@@ -341,6 +347,8 @@
              int j1 = i - k;
              int k1 = j - l;
  
@@ -144,7 +182,7 @@
              if (j1 != 0 || k1 != 0)
              {
                  for (int l1 = i - i1; l1 <= i + i1; ++l1)
-@@ -349,7 +372,8 @@
+@@ -349,7 +357,8 @@
                      {
                          if (!this.overlaps(l1, i2, k, l, i1))
                          {
@@ -154,7 +192,7 @@
                          }
  
                          if (!this.overlaps(l1 - j1, i2 - k1, i, j, i1))
-@@ -367,6 +391,12 @@
+@@ -367,6 +376,12 @@
                  player.managedPosX = player.posX;
                  player.managedPosZ = player.posZ;
                  this.markSortPending();
@@ -167,7 +205,7 @@
              }
          }
      }
-@@ -443,11 +473,13 @@
+@@ -443,11 +458,13 @@
  
      public void entryChanged(PlayerChunkMapEntry entry)
      {
@@ -181,7 +219,7 @@
          ChunkPos chunkpos = entry.getPos();
          long i = getIndex(chunkpos.x, chunkpos.z);
          entry.updateChunkInhabitedTime();
-@@ -458,9 +490,78 @@
+@@ -458,9 +475,78 @@
          this.entriesWithoutChunks.remove(entry);
          Chunk chunk = entry.getChunk();
  
