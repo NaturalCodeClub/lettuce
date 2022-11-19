@@ -1075,7 +1075,7 @@
          Validate.notNull(callable);
  
 -        if (!this.isCallingFromMinecraftThread() && !this.isServerStopped())
-+        if (!this.isCallingFromMinecraftThread()/* && !this.isServerStopped()*/) // CraftBukkit
++        if (!this.isCallingFromMinecraftThread()/* && !this.isServerStopped()*/ && !WorkerWrapper.isWorker()) // CraftBukkit
          {
              ListenableFutureTask<V> listenablefuturetask = ListenableFutureTask.<V>create(callable);
  
@@ -1091,7 +1091,7 @@
          }
          else
          {
-@@ -1366,12 +1602,12 @@
+@@ -1366,20 +1602,20 @@
  
      public AdvancementManager getAdvancementManager()
      {
@@ -1106,8 +1106,9 @@
      }
  
      public void reload()
-@@ -1379,7 +1615,7 @@
-         if (this.isCallingFromMinecraftThread())
+     {
+-        if (this.isCallingFromMinecraftThread())
++        if (this.isCallingFromMinecraftThread() && !WorkerWrapper.isWorker())
          {
              this.getPlayerList().saveAllPlayerData();
 -            this.worlds[0].getLootTableManager().reloadLootTables();
