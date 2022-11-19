@@ -905,7 +905,7 @@
      {
 -        return "vanilla";
 +        // TODO: Should we change this for CraftBukkit's server name?
-+        return net.minecraftforge.fml.common.FMLCommonHandler.instance().getModName();
++        return "Lettuce";
      }
  
      public CrashReport addServerInfoToCrashReport(CrashReport report)

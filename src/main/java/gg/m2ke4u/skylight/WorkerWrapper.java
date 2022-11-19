@@ -41,7 +41,9 @@ public class WorkerWrapper {
                 workers.add(Thread.currentThread());
                 task.run();
             }finally {
-                workers.remove(Thread.currentThread());
+                if (WorkerConfig.AUTO_CLEAR_WORKERS){
+                    workers.remove(Thread.currentThread());
+                }
             }
         },"Lettuce-Pool-Worker # "+threadId.getAndIncrement());
         worker.setDaemon(true);
