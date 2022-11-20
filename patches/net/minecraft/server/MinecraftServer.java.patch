@@ -1075,7 +1075,7 @@
          Validate.notNull(callable);
  
 -        if (!this.isCallingFromMinecraftThread() && !this.isServerStopped())
-+        if (!this.isCallingFromMinecraftThread()/* && !this.isServerStopped()*/ && !WorkerWrapper.isWorker()) // CraftBukkit
++        if (!this.isCallingFromMinecraftThread() && !WorkerWrapper.isWorker()) // CraftBukkit
          {
              ListenableFutureTask<V> listenablefuturetask = ListenableFutureTask.<V>create(callable);
  
