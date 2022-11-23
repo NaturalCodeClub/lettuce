@@ -21,6 +21,7 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
 
     @Override
     public void call(World input) {
+        this.finished = false;
         profiler.postSection();
         input.asyncEntitiesExecutor.execute(()->{
             try{
@@ -59,5 +60,35 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
     @Override
     public void forceTerminate() {
         this.currentTask.forceTerminate();
+    }
+
+    private final Object waitLock = new Object();
+
+    @Override
+    public void awaitFinish(long nanosTimeOut) {
+        long counter = nanosTimeOut;
+        try{
+            while (!this.finished() && counter > 0){
+                synchronized (this.waitLock){
+                    this.waitLock.wait(0,1);
+                }
+                counter--;
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void awaitFinish() {
+        try{
+            while (!this.finished()){
+                synchronized (this.waitLock){
+                    this.waitLock.wait(0,1);
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }

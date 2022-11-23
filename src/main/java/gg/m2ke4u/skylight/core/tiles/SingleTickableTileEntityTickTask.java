@@ -32,17 +32,33 @@ public final class SingleTickableTileEntityTickTask implements TickTask<TileEnti
         }
     }
 
+    @Deprecated
     @Override
     public boolean finished() {
-        return true;
+        throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public boolean terminate() {
-        return false;
+        throw new UnsupportedOperationException();
     }
 
+    @Deprecated
     @Override
     public void forceTerminate() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public void awaitFinish(long nanosTimeOut) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Deprecated
+    @Override
+    public void awaitFinish() {
+        throw new UnsupportedOperationException();
     }
 }

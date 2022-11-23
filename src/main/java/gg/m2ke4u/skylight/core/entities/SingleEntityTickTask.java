@@ -35,14 +35,26 @@ public final class SingleEntityTickTask implements TickTask<Entity> {
 
     @Override
     public boolean finished() {
-        return true;
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean terminate() {
-        return false;
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    public void forceTerminate() {}
+    public void forceTerminate() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void awaitFinish(long nanosTimeOut) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void awaitFinish() {
+        throw new UnsupportedOperationException();
+    }
 }

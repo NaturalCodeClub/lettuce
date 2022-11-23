@@ -124,4 +124,14 @@ public final class UpdateEntitiesTask implements TickTask<World> {
     public void forceTerminate() {
         this.terminated = true;
     }
+
+    @Override
+    public void awaitFinish(long nanosTimeOut) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void awaitFinish() {
+        throw new UnsupportedOperationException();
+    }
 }

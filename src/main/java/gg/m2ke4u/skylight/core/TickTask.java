@@ -1,8 +1,16 @@
 package gg.m2ke4u.skylight.core;
 
 public interface TickTask<T>{
-    public void call(T input);
-    public boolean finished();
-    public boolean terminate();
-    public void forceTerminate();
+
+    void call(T input);
+
+    boolean finished();
+
+    boolean terminate();
+
+    void forceTerminate();
+
+    void awaitFinish(long nanosTimeOut);
+
+    void awaitFinish();
 }
