@@ -3,7 +3,7 @@ A minecraft server implemented MCMT as catserver
 # functions
 1.Async and multithreaded entity ticking\
 2.Multithreaded tracker\
-3.Parallel world ticking and random ticking\
+3.Parallel world ticking and random ticking
 # build
 Run gradle task in your ide:setup genPatches build\
 Or run it in your console : ./gradlew setup genPatches build(Linux)
