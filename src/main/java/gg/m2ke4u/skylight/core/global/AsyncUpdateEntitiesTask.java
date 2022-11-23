@@ -14,7 +14,7 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
     private final SinglePartProfiler profiler = new SinglePartProfiler("AsyncEntities");
     private final Consumer<AsyncUpdateEntitiesTask> callBackTask;
 
-    public AsyncUpdateEntitiesTask(Executor entitiesExecutor, Consumer<AsyncUpdateEntitiesTask> callBackTask){
+    public AsyncUpdateEntitiesTask(Executor entitiesExecutor, Consumer<AsyncUpdateEntitiesTask> callBackTask) {
         this.executorToTickEntities = entitiesExecutor;
         this.callBackTask = callBackTask;
     }
@@ -23,17 +23,17 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
     public void call(World input) {
         this.finished = false;
         profiler.postSection();
-        input.asyncEntitiesExecutor.execute(()->{
-            try{
+        input.asyncEntitiesExecutor.execute(() -> {
+            try {
                 final UpdateEntitiesTask task = new UpdateEntitiesTask(this.executorToTickEntities);
                 this.currentTask = task;
                 task.call(input);
-            }finally {
+            } finally {
                 this.finished = true;
-                try{
+                try {
                     this.callBackTask.accept(this);
-                }catch (Exception e){
-                    LogManager.getLogger().error("Failed to execute call back task!",e);
+                } catch (Exception e) {
+                    LogManager.getLogger().error("Failed to execute call back task!", e);
                 }
             }
         });
@@ -45,7 +45,7 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
         return this.finished;
     }
 
-    public SinglePartProfiler getProfiler(){
+    public SinglePartProfiler getProfiler() {
         return this.profiler;
     }
 
@@ -67,27 +67,27 @@ public class AsyncUpdateEntitiesTask implements TickTask<World> {
     @Override
     public void awaitFinish(long nanosTimeOut) {
         long counter = nanosTimeOut;
-        try{
-            while (!this.finished() && counter > 0){
-                synchronized (this.waitLock){
-                    this.waitLock.wait(0,1);
+        try {
+            synchronized (this.waitLock) {
+                while (!this.finished() && counter > 0) {
+                    this.waitLock.wait(0, 1);
+                    counter--;
                 }
-                counter--;
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     @Override
     public void awaitFinish() {
-        try{
-            while (!this.finished()){
-                synchronized (this.waitLock){
-                    this.waitLock.wait(0,1);
+        try {
+            synchronized (this.waitLock) {
+                while (!this.finished()) {
+                    this.waitLock.wait(0, 1);
                 }
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
