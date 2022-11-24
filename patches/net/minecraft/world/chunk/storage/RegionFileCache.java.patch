@@ -1,33 +1,30 @@
 --- ../src-base/minecraft/net/minecraft/world/chunk/storage/RegionFileCache.java
 +++ ../src-work/minecraft/net/minecraft/world/chunk/storage/RegionFileCache.java
-@@ -1,17 +1,24 @@
+@@ -1,17 +1,20 @@
  package net.minecraft.world.chunk.storage;
  
  import com.google.common.collect.Maps;
 +import net.minecraft.nbt.CompressedStreamTools;
 +import net.minecraft.nbt.NBTTagCompound;
-+
 +import javax.annotation.Nullable;
  import java.io.DataInputStream;
  import java.io.DataOutputStream;
  import java.io.File;
  import java.io.IOException;
-+import java.util.Collections;
-+import java.util.Iterator;
-+import java.util.LinkedHashMap;
- import java.util.Map;
+-import java.util.Map;
++import java.util.*;
  
  public class RegionFileCache
  {
 -    private static final Map<File, RegionFile> REGIONS_BY_FILE = Maps.<File, RegionFile>newHashMap();
-+    public static final Map<File, RegionFile> REGIONS_BY_FILE = Collections.synchronizedMap(new LinkedHashMap(256, 0.75f, true)); // Spigot - private -> public, Paper - HashMap -> LinkedHashMap
++    public static final Map<File, RegionFile> REGIONS_BY_FILE = Maps.newConcurrentMap();
  
 -    public static synchronized RegionFile createOrLoadRegionFile(File worldDir, int chunkX, int chunkZ)
 +    public static RegionFile createOrLoadRegionFile(File worldDir, int chunkX, int chunkZ)
      {
          File file1 = new File(worldDir, "region");
          File file2 = new File(file1, "r." + (chunkX >> 5) + "." + (chunkZ >> 5) + ".mca");
-@@ -30,7 +37,7 @@
+@@ -30,7 +33,7 @@
  
              if (REGIONS_BY_FILE.size() >= 256)
              {
@@ -36,7 +33,7 @@
              }
  
              RegionFile regionfile1 = new RegionFile(file2);
-@@ -39,7 +46,22 @@
+@@ -39,7 +42,22 @@
          }
      }
  
@@ -60,7 +57,7 @@
      {
          File file1 = new File(worldDir, "region");
          File file2 = new File(file1, "r." + (chunkX >> 5) + "." + (chunkZ >> 5) + ".mca");
-@@ -66,7 +88,7 @@
+@@ -66,7 +84,7 @@
          }
      }
  
@@ -69,7 +66,7 @@
      {
          for (RegionFile regionfile : REGIONS_BY_FILE.values())
          {
-@@ -92,12 +114,33 @@
+@@ -92,12 +110,33 @@
          return regionfile.getChunkDataInputStream(chunkX & 31, chunkZ & 31);
      }
  

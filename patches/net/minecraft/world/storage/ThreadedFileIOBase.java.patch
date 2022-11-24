@@ -103,7 +103,7 @@
 -        {
 -            Thread.sleep(10L);
 +        synchronized (this.waiter){
-+            while (this.activeCount.get() > 0)
++            while (this.activeCount.get() > 0 && !this.threadedIOQueue.isEmpty())
 +            {
 +                this.waiter.wait();
 +            }
