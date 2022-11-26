@@ -1,12 +1,14 @@
 package gg.m2ke4u.skylight;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 
-public class ConcurrentCastableLinkedHashSet<T> extends LinkedHashSet<T>{
-    private final ConcurrentSkipListSet<T> baking = new ConcurrentSkipListSet<>();
+public class ConcurrentCastableNonLinkedHashSet<T> extends LinkedHashSet<T>{
+    private final Set<T> baking = Sets.newConcurrentHashSet();
 
     @Override
     public int size() {
