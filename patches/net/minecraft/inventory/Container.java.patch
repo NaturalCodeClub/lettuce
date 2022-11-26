@@ -1,16 +1,18 @@
 --- ../src-base/minecraft/net/minecraft/inventory/Container.java
 +++ ../src-work/minecraft/net/minecraft/inventory/Container.java
-@@ -18,7 +18,27 @@
+@@ -18,7 +18,29 @@
  import net.minecraft.world.World;
  import net.minecraftforge.fml.relauncher.Side;
  import net.minecraftforge.fml.relauncher.SideOnly;
 +import net.minecraftforge.items.wrapper.PlayerInvWrapper;
  
 +import org.bukkit.Bukkit;
++import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.inventory.CraftInventory;
 +import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.entity.Player;
 +import org.bukkit.event.Event;
 +import org.bukkit.event.inventory.InventoryDragEvent;
 +import org.bukkit.event.inventory.InventoryType;
@@ -28,7 +30,7 @@
  public abstract class Container
  {
      public NonNullList<ItemStack> inventoryItemStacks = NonNullList.<ItemStack>create();
-@@ -31,7 +51,73 @@
+@@ -31,7 +53,73 @@
      private final Set<Slot> dragSlots = Sets.<Slot>newHashSet();
      protected List<IContainerListener> listeners = Lists.<IContainerListener>newArrayList();
      private final Set<EntityPlayer> playerList = Sets.<EntityPlayer>newHashSet();
@@ -102,7 +104,7 @@
      protected Slot addSlotToContainer(Slot slotIn)
      {
          slotIn.slotNumber = this.inventorySlots.size();
-@@ -79,17 +165,20 @@
+@@ -79,17 +167,20 @@
              ItemStack itemstack = ((Slot)this.inventorySlots.get(i)).getStack();
              ItemStack itemstack1 = this.inventoryItemStacks.get(i);
  
@@ -124,7 +126,19 @@
      }
  
      public boolean enchantItem(EntityPlayer playerIn, int id)
-@@ -172,7 +261,7 @@
+@@ -115,6 +206,11 @@
+ 
+     public Slot getSlot(int slotId)
+     {
++        //Emmm，只是暂时的解决方法，如果有其他mod或者插件错误调用了也会踢出玩家
++        if (slotId > this.inventorySlots.size() || slotId < 0){
++            ((Player) bukkitView.getPlayer()).kickPlayer("Invalid slot click!");
++            throw new IllegalArgumentException("Invalid slot click!");
++        }
+         return this.inventorySlots.get(slotId);
+     }
+ 
+@@ -172,7 +268,7 @@
                  {
                      ItemStack itemstack9 = inventoryplayer.getItemStack().copy();
                      int k1 = inventoryplayer.getItemStack().getCount();
@@ -133,7 +147,7 @@
                      for (Slot slot8 : this.dragSlots)
                      {
                          ItemStack itemstack13 = inventoryplayer.getItemStack();
-@@ -190,12 +279,50 @@
+@@ -190,12 +286,50 @@
                              }
  
                              k1 -= itemstack14.getCount() - j3;
@@ -187,7 +201,7 @@
                  }
  
                  this.resetDrag();
-@@ -217,8 +344,9 @@
+@@ -217,8 +351,9 @@
                  {
                      if (dragType == 0)
                      {
@@ -198,7 +212,7 @@
                      }
  
                      if (dragType == 1)
-@@ -346,6 +474,15 @@
+@@ -346,6 +481,15 @@
                      }
  
                      slot6.onSlotChanged();
@@ -214,7 +228,7 @@
                  }
              }
          }
-@@ -589,18 +726,19 @@
+@@ -589,18 +733,19 @@
                  if (!itemstack.isEmpty() && itemstack.getItem() == stack.getItem() && (!stack.getHasSubtypes() || stack.getMetadata() == itemstack.getMetadata()) && ItemStack.areItemStackTagsEqual(stack, itemstack))
                  {
                      int j = itemstack.getCount() + stack.getCount();
@@ -238,7 +252,7 @@
                          slot.onSlotChanged();
                          flag = true;
                      }
-@@ -738,7 +876,7 @@
+@@ -738,7 +883,7 @@
                  stack.setCount(1);
                  break;
              case 2:
@@ -247,7 +261,7 @@
          }
  
          stack.grow(slotStackSize);
-@@ -795,6 +933,9 @@
+@@ -795,6 +940,9 @@
                  itemstack = irecipe.getCraftingResult(p_192389_3_);
              }
  
