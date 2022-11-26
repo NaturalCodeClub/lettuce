@@ -105,15 +105,6 @@
      {
          return (taskEntry1.action.getMutexBits() & taskEntry2.action.getMutexBits()) == 0;
      }
-@@ -180,7 +182,7 @@
-         }
-     }
- 
--    public class EntityAITaskEntry
-+    public class EntityAITaskEntry implements
-     {
-         public final EntityAIBase action;
-         public final int priority;
 @@ -200,7 +202,7 @@
              }
              else
