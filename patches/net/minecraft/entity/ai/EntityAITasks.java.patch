@@ -16,7 +16,7 @@
 -    public final Set<EntityAITasks.EntityAITaskEntry> taskEntries = Sets.<EntityAITasks.EntityAITaskEntry>newLinkedHashSet();
 -    private final Set<EntityAITasks.EntityAITaskEntry> executingTaskEntries = Sets.<EntityAITasks.EntityAITaskEntry>newLinkedHashSet();
 +    public final Set<EntityAITaskEntry> taskEntries = new ConcurrentCastableNonLinkedHashSet<>();
-+    private final Set<EntityAITaskEntry> executingTaskEntries = new ConcurrentCastableNonLinkedHashSet<>();
++    private final Set<EntityAITaskEntry> executingTaskEntries = Sets.newConcurrentHashSet();
      private final Profiler profiler;
      private int tickCount;
      private int tickRate = 3;
