@@ -110,7 +110,7 @@
      }
  
 -    public class EntityAITaskEntry
-+    public class EntityAITaskEntry implements Comparable
++    public class EntityAITaskEntry implements
      {
          public final EntityAIBase action;
          public final int priority;
