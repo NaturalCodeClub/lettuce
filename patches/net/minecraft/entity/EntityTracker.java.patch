@@ -76,29 +76,36 @@
          if (entityIn instanceof EntityPlayerMP)
          {
              EntityPlayerMP entityplayermp = (EntityPlayerMP)entityIn;
-@@ -283,35 +291,26 @@
+@@ -283,35 +291,30 @@
  
      public void tick()
      {
 -        List<EntityPlayerMP> list = Lists.<EntityPlayerMP>newArrayList();
--
++       try{
++           CollectionConcurrentUtils.traverseConcurrent(this.entries,entitytrackerentry->{
++               entitytrackerentry.updatePlayerList(this.world.playerEntities);
++               if (entitytrackerentry.playerEntitiesUpdated)
++               {
++                   Entity entity = entitytrackerentry.getTrackedEntity();
+ 
 -        for (EntityTrackerEntry entitytrackerentry : this.entries)
 -        {
-+        CollectionConcurrentUtils.traverseConcurrent(this.entries,entitytrackerentry->{
-             entitytrackerentry.updatePlayerList(this.world.playerEntities);
--
-             if (entitytrackerentry.playerEntitiesUpdated)
-             {
-                 Entity entity = entitytrackerentry.getTrackedEntity();
+-            entitytrackerentry.updatePlayerList(this.world.playerEntities);
++                   if (entity instanceof EntityPlayerMP)
++                   {
++                       EntityPlayerMP entityplayermp = ((EntityPlayerMP) entity);
  
-                 if (entity instanceof EntityPlayerMP)
-                 {
+-            if (entitytrackerentry.playerEntitiesUpdated)
+-            {
+-                Entity entity = entitytrackerentry.getTrackedEntity();
+-
+-                if (entity instanceof EntityPlayerMP)
+-                {
 -                    list.add((EntityPlayerMP)entity);
 -                }
 -            }
 -        }
-+                    EntityPlayerMP entityplayermp = ((EntityPlayerMP) entity);
- 
+-
 -        for (int i = 0; i < list.size(); ++i)
 -        {
 -            EntityPlayerMP entityplayermp = list.get(i);
@@ -108,21 +115,26 @@
 -                if (entitytrackerentry1.getTrackedEntity() != entityplayermp)
 -                {
 -                    entitytrackerentry1.updatePlayerEntity(entityplayermp);
-+                    for (EntityTrackerEntry entitytrackerentry1 : this.entries)
-+                    {
-+                        if (entitytrackerentry1.getTrackedEntity() != entityplayermp)
-+                        {
-+                            entitytrackerentry1.updatePlayerEntity(entityplayermp);
-+                        }
-+                    }
-                 }
-             }
+-                }
+-            }
 -        }
-+        }, MinecraftServer.GLOBAL_EXECUTOR);
++                       for (EntityTrackerEntry entitytrackerentry1 : this.entries)
++                       {
++                           if (entitytrackerentry1.getTrackedEntity() != entityplayermp)
++                           {
++                               entitytrackerentry1.updatePlayerEntity(entityplayermp);
++                           }
++                       }
++                   }
++               }
++           }, MinecraftServer.GLOBAL_EXECUTOR);
++       }catch (Exception e){
++           e.printStackTrace();
++       }
      }
  
      public void updateVisibility(EntityPlayerMP player)
-@@ -339,6 +338,25 @@
+@@ -339,6 +342,25 @@
          }
      }
  
@@ -148,7 +160,7 @@
      public void sendToTrackingAndSelf(Entity entityIn, Packet<?> packetIn)
      {
          EntityTrackerEntry entitytrackerentry = this.trackedEntityHashTable.lookup(entityIn.getEntityId());
-@@ -359,8 +377,8 @@
+@@ -359,8 +381,8 @@
  
      public void sendLeashedEntitiesInChunk(EntityPlayerMP player, Chunk chunkIn)
      {
