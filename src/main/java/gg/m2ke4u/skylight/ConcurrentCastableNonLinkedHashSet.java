@@ -1,14 +1,13 @@
 package gg.m2ke4u.skylight;
 
-import com.google.common.collect.Sets;
-
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ConcurrentCastableNonLinkedHashSet<T> extends LinkedHashSet<T>{
-    private final Set<T> baking = Sets.newConcurrentHashSet();
+    private final Set<T> baking = ConcurrentHashMap.newKeySet();
 
     @Override
     public int size() {
@@ -57,7 +56,7 @@ public class ConcurrentCastableNonLinkedHashSet<T> extends LinkedHashSet<T>{
 
     @Override
     public boolean addAll(Collection<? extends T> c) {
-        return this.baking.add((T) c);
+        return this.baking.addAll(c);
     }
 
     @Override
