@@ -27,7 +27,7 @@
 -        Thread thread = new Thread(this, "File IO Thread");
 -        thread.setPriority(1);
 -        thread.start();
-+        for (int i = 0; i < WorkerConfig.IO_WORKER_THREADS; i++) {
++        for (int i = 0; i < 1; i++) {
 +            Thread thread = new Thread(this, "File IO Thread # "+i);
 +            thread.setPriority(1);
 +            thread.start();
