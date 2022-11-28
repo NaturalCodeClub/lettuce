@@ -55,8 +55,8 @@
 -
 -            if (!flag)
 +        IThreadedFileIO ithreadedfileio;
++        this.activeCount.set(this.threadedIOQueue.size());
 +        while ((ithreadedfileio = this.threadedIOQueue.poll())!=null){
-+            this.activeCount.getAndIncrement();
 +            if (ithreadedfileio.writeNextIO())
              {
 -                this.threadedIOQueue.remove(i--);
