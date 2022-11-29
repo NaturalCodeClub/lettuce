@@ -17,7 +17,6 @@ public class WorkerConfig {
     public static boolean AUTO_CLEAR_WORKERS;
     public static boolean SYNC_ENTITIES;
     public static boolean ASYNC_CATCHER_DISABLED;
-    public static int IO_WORKER_THREADS;
     public static long ENTITY_AWAIT_TIMEOUT;
     public static boolean ENTITY_TIME_OUT_ENABLED;
 
@@ -32,7 +31,6 @@ public class WorkerConfig {
 
                 workerConfig.addDefault("entities-worker-threads",Runtime.getRuntime().availableProcessors());
                 workerConfig.addDefault("global-worker-threads",Runtime.getRuntime().availableProcessors());
-                workerConfig.addDefault("io-worker-threads",Runtime.getRuntime().availableProcessors()/2);
                 miscConfig.addDefault("auto-clear-workers",true);
                 miscConfig.addDefault("sync-entities-ticking",false);
                 miscConfig.addDefault("disable-async-catcher",false);
@@ -41,7 +39,6 @@ public class WorkerConfig {
 
                 ENTITIES_WORKER_THREADS = Runtime.getRuntime().availableProcessors();
                 GLOBAL_WORKER_THREADS = Runtime.getRuntime().availableProcessors();
-                IO_WORKER_THREADS = Runtime.getRuntime().availableProcessors()/2;
 
                 AUTO_CLEAR_WORKERS = true;
                 SYNC_ENTITIES = false;
@@ -61,7 +58,6 @@ public class WorkerConfig {
 
             ENTITIES_WORKER_THREADS = workerConfig.getInt("entities-worker-threads");
             GLOBAL_WORKER_THREADS = workerConfig.getInt("global-worker-threads");
-            IO_WORKER_THREADS = workerConfig.getInt("io-worker-threads");
 
             AUTO_CLEAR_WORKERS = miscConfig.getBoolean("auto-clear-workers");
             SYNC_ENTITIES = miscConfig.getBoolean("sync-entities-ticking");
