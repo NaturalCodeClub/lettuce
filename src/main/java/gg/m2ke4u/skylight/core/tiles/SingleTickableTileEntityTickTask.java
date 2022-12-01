@@ -8,57 +8,49 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
 public final class SingleTickableTileEntityTickTask implements TickTask<TileEntity> {
+    private volatile boolean finished = false;
+
     @Override
     public void call(TileEntity input) {
-        final World world = input.world;
-        if (input == null || !world.tileLimiter.shouldContinue()) {
-            return;
-        }
-        if (!input.isInvalid() && input.hasWorld()) {
-            BlockPos blockpos = input.getPos();
-            if (world.isBlockLoaded(blockpos, false) && world.getWorldBorder().contains(blockpos)) //Forge: Fix TE's getting an extra tick on the client side....
+        try {
+            final World world = input.world;
+            if (input == null || !world.tileLimiter.shouldContinue()) {
+                return;
+            }
+            if (!input.isInvalid() && input.hasWorld())
             {
-                ((ITickable) input).update();
+                BlockPos blockpos = input.getPos();
+                if (world.isBlockLoaded(blockpos, false) && world.getWorldBorder().contains(blockpos)) //Forge: Fix TE's getting an extra tick on the client side....
+                {
+                    ((ITickable)input).update();
+                }
             }
-        }
-        if (input.isInvalid()) {
-            world.tickableTileEntities.remove(input);
-            world.loadedTileEntityList.remove(input);
-            if (world.isBlockLoaded(input.getPos())) {
-                Chunk chunk = world.getChunkFromBlockCoords(input.getPos());
-                if (chunk.getTileEntity(input.getPos(), net.minecraft.world.chunk.Chunk.EnumCreateEntityType.CHECK) == input)
-                    chunk.removeTileEntity(input.getPos());
+            if (input.isInvalid())
+            {
+                world.tickableTileEntities.remove(input);
+                world.loadedTileEntityList.remove(input);
+                if (world.isBlockLoaded(input.getPos()))
+                {
+                    Chunk chunk = world.getChunkFromBlockCoords(input.getPos());
+                    if (chunk.getTileEntity(input.getPos(), net.minecraft.world.chunk.Chunk.EnumCreateEntityType.CHECK) == input)
+                        chunk.removeTileEntity(input.getPos());
+                }
             }
+        }finally {
+            this.finished = true;
         }
     }
 
-    @Deprecated
     @Override
     public boolean finished() {
-        throw new UnsupportedOperationException();
+        return this.finished;
     }
 
-    @Deprecated
     @Override
     public boolean terminate() {
-        throw new UnsupportedOperationException();
+        return false;
     }
 
-    @Deprecated
     @Override
-    public void forceTerminate() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    @Override
-    public void awaitFinish(long nanosTimeOut) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Deprecated
-    @Override
-    public void awaitFinish() {
-        throw new UnsupportedOperationException();
-    }
+    public void forceTerminate() {}
 }

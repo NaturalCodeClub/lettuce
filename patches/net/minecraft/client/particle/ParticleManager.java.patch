@@ -8,7 +8,24 @@
          this.queue.add(effect);
      }
  
-@@ -409,7 +410,7 @@
+@@ -199,16 +200,10 @@
+ 
+     private void updateEffectLayer(int layer)
+     {
+-        this.world.profiler.startSection(String.valueOf(layer));
+-
+         for (int i = 0; i < 2; ++i)
+         {
+-            this.world.profiler.startSection(String.valueOf(i));
+             this.tickParticleList(this.fxLayers[layer][i]);
+-            this.world.profiler.endSection();
+         }
+-
+-        this.world.profiler.endSection();
+     }
+ 
+     private void tickParticleList(Queue<Particle> p_187240_1_)
+@@ -409,7 +404,7 @@
  
      public void addBlockDestroyEffects(BlockPos pos, IBlockState state)
      {
@@ -17,7 +34,7 @@
          {
              state = state.getActualState(this.world, pos);
              int i = 4;
-@@ -493,4 +494,13 @@
+@@ -493,4 +488,13 @@
  
          return "" + i;
      }

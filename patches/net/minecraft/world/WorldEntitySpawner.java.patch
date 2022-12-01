@@ -22,8 +22,7 @@
  public final class WorldEntitySpawner
  {
      private static final int MOB_COUNT_DIV = (int)Math.pow(17.0D, 2.0D);
--    private final Set<ChunkPos> eligibleChunksForSpawning = Sets.<ChunkPos>newHashSet();
-+    private final Set<ChunkPos> eligibleChunksForSpawning = Sets.<ChunkPos>newConcurrentHashSet();
+     private final Set<ChunkPos> eligibleChunksForSpawning = Sets.<ChunkPos>newHashSet();
  
 +    // Spigot start - get entity count only from chunks being processed in b
 +    private int getEntityCount(WorldServer server, Class oClass)

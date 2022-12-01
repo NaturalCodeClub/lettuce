@@ -69,6 +69,19 @@
          Set<BlockPos> set = Sets.<BlockPos>newHashSet();
          int i = 16;
  
+@@ -83,9 +98,9 @@
+                 {
+                     if (j == 0 || j == 15 || k == 0 || k == 15 || l == 0 || l == 15)
+                     {
+-                        double d0 = (double)((float)j / 15.0F * 2.0F - 1.0F);
+-                        double d1 = (double)((float)k / 15.0F * 2.0F - 1.0F);
+-                        double d2 = (double)((float)l / 15.0F * 2.0F - 1.0F);
++                        double d0 = j / 15.0F * 2.0F - 1.0F;
++                        double d1 = k / 15.0F * 2.0F - 1.0F;
++                        double d2 = l / 15.0F * 2.0F - 1.0F;
+                         double d3 = Math.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+                         d0 = d0 / d3;
+                         d1 = d1 / d3;
 @@ -102,11 +117,11 @@
  
                              if (iblockstate.getMaterial() != Material.AIR)
@@ -83,15 +96,37 @@
                              {
                                  set.add(blockpos);
                              }
-@@ -129,6 +144,7 @@
+@@ -129,48 +144,47 @@
          int j2 = MathHelper.floor(this.z - (double)f3 - 1.0D);
          int j1 = MathHelper.floor(this.z + (double)f3 + 1.0D);
          List<Entity> list = this.world.getEntitiesWithinAABBExcludingEntity(this.exploder, new AxisAlignedBB((double)k1, (double)i2, (double)j2, (double)l1, (double)i1, (double)j1));
 +        net.minecraftforge.event.ForgeEventFactory.onExplosionDetonate(this.world, this, list, f3);
          Vec3d vec3d = new Vec3d(this.x, this.y, this.z);
  
-         for (int k2 = 0; k2 < list.size(); ++k2)
-@@ -151,9 +167,16 @@
+-        for (int k2 = 0; k2 < list.size(); ++k2)
+-        {
+-            Entity entity = list.get(k2);
++        for (Entity entity : list) {
++            if (!entity.isImmuneToExplosions()) {
++                double d12 = entity.getDistance(this.x, this.y, this.z) / (double) f3;
+ 
+-            if (!entity.isImmuneToExplosions())
+-            {
+-                double d12 = entity.getDistance(this.x, this.y, this.z) / (double)f3;
+-
+-                if (d12 <= 1.0D)
+-                {
++                if (d12 <= 1.0D) {
+                     double d5 = entity.posX - this.x;
+-                    double d7 = entity.posY + (double)entity.getEyeHeight() - this.y;
++                    double d7 = entity.posY + (double) entity.getEyeHeight() - this.y;
+                     double d9 = entity.posZ - this.z;
+-                    double d13 = (double)MathHelper.sqrt(d5 * d5 + d7 * d7 + d9 * d9);
++                    double d13 = (double) MathHelper.sqrt(d5 * d5 + d7 * d7 + d9 * d9);
+ 
+-                    if (d13 != 0.0D)
+-                    {
++                    if (d13 != 0.0D) {
                          d5 = d5 / d13;
                          d7 = d7 / d13;
                          d9 = d9 / d13;
@@ -109,8 +144,39 @@
 +                        }
                          double d11 = d10;
  
-                         if (entity instanceof EntityLivingBase)
-@@ -195,6 +218,48 @@
+-                        if (entity instanceof EntityLivingBase)
+-                        {
+-                            d11 = EnchantmentProtection.getBlastDamageReduction((EntityLivingBase)entity, d10);
++                        if (entity instanceof EntityLivingBase) {
++                            d11 = EnchantmentProtection.getBlastDamageReduction((EntityLivingBase) entity, d10);
+                         }
+ 
+                         entity.motionX += d5 * d11;
+                         entity.motionY += d7 * d11;
+                         entity.motionZ += d9 * d11;
+ 
+-                        if (entity instanceof EntityPlayer)
+-                        {
+-                            EntityPlayer entityplayer = (EntityPlayer)entity;
++                        if (entity instanceof EntityPlayer) {
++                            EntityPlayer entityplayer = (EntityPlayer) entity;
+ 
+-                            if (!entityplayer.isSpectator() && (!entityplayer.isCreative() || !entityplayer.capabilities.isFlying))
+-                            {
++                            if (!entityplayer.isSpectator() && (!entityplayer.isCreative() || !entityplayer.capabilities.isFlying)) {
+                                 this.playerKnockbackMap.put(entityplayer, new Vec3d(d5 * d10, d7 * d10, d9 * d10));
+                             }
+                         }
+@@ -182,7 +196,7 @@
+ 
+     public void doExplosionB(boolean spawnParticles)
+     {
+-        this.world.playSound((EntityPlayer)null, this.x, this.y, this.z, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 4.0F, (1.0F + (this.world.rand.nextFloat() - this.world.rand.nextFloat()) * 0.2F) * 0.7F);
++        this.world.playSound(null, this.x, this.y, this.z, SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, 4.0F, (1.0F + (this.world.rand.nextFloat() - this.world.rand.nextFloat()) * 0.2F) * 0.7F);
+ 
+         if (this.size >= 2.0F && this.damagesTerrain)
+         {
+@@ -195,6 +209,48 @@
  
          if (this.damagesTerrain)
          {
@@ -159,7 +225,7 @@
              for (BlockPos blockpos : this.affectedBlockPositions)
              {
                  IBlockState iblockstate = this.world.getBlockState(blockpos);
-@@ -225,11 +290,12 @@
+@@ -225,11 +281,12 @@
                  {
                      if (block.canDropFromExplosion(this))
                      {
@@ -175,7 +241,7 @@
                  }
              }
          }
-@@ -240,7 +306,12 @@
+@@ -240,7 +297,12 @@
              {
                  if (this.world.getBlockState(blockpos1).getMaterial() == Material.AIR && this.world.getBlockState(blockpos1.down()).isFullBlock() && this.random.nextInt(3) == 0)
                  {
@@ -189,7 +255,7 @@
                  }
              }
          }
-@@ -264,7 +335,8 @@
+@@ -264,7 +326,8 @@
          }
          else
          {
@@ -199,7 +265,7 @@
          }
      }
  
-@@ -277,4 +349,84 @@
+@@ -277,4 +340,84 @@
      {
          return this.affectedBlockPositions;
      }

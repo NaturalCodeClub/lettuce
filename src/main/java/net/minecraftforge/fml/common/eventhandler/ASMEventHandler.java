@@ -26,8 +26,12 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.util.HashMap;
 
+import catserver.server.AsyncCatcher;
+import gg.m2ke4u.skylight.config.GlobalConfig;
 import net.minecraftforge.fml.common.ModContainer;
 
+import net.minecraftforge.fml.common.event.FMLServerStartedEvent;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.ThreadContext;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -74,31 +78,47 @@ public class ASMEventHandler implements IEventListener
             }
         }
     }
-
-    private final Object lock = new Object();
+    private final Object mutex = new Object();
+    public static boolean started = false;
 
     @SuppressWarnings("rawtypes")
     @Override
-    public void invoke(Event event)
-    {
-        synchronized (this.lock){
-            try{
-                if (GETCONTEXT)
-                    ThreadContext.put("mod", owner == null ? "" : owner.getName());
-                if (handler != null)
-                {
-                    if (!event.isCancelable() || !event.isCanceled() || subInfo.receiveCanceled())
-                    {
-                        if (filter == null || filter == ((IGenericEvent)event).getGenericType())
-                        {
-                            handler.invoke(event);
+    public void invoke(Event event) {
+        if (GlobalConfig.FORGE_EVENT_RETURN_TO_MAIN && this.started){
+            AsyncCatcher.ensureExecuteOnPrimaryThreadAsync(() -> {
+                try{
+                    if (GETCONTEXT)
+                        ThreadContext.put("mod", owner == null ? "" : owner.getName());
+                    if (handler != null) {
+                        if (!event.isCancelable() || !event.isCanceled() || subInfo.receiveCanceled()) {
+                            if (filter == null || filter == ((IGenericEvent) event).getGenericType()) {
+                                handler.invoke(event);
+                            }
                         }
                     }
+                    if (GETCONTEXT)
+                        ThreadContext.remove("mod");
+                }catch (Exception e){
+                    LogManager.getLogger().error(e);
                 }
-                if (GETCONTEXT)
-                    ThreadContext.remove("mod");
-            }catch (Exception e){
-                e.printStackTrace();
+            });
+        }else{
+            synchronized (this.mutex){
+                try{
+                    if (GETCONTEXT)
+                        ThreadContext.put("mod", owner == null ? "" : owner.getName());
+                    if (handler != null) {
+                        if (!event.isCancelable() || !event.isCanceled() || subInfo.receiveCanceled()) {
+                            if (filter == null || filter == ((IGenericEvent) event).getGenericType()) {
+                                handler.invoke(event);
+                            }
+                        }
+                    }
+                    if (GETCONTEXT)
+                        ThreadContext.remove("mod");
+                }catch (Exception e){
+                    LogManager.getLogger().error(e);
+                }
             }
         }
     }

@@ -1,6 +1,5 @@
 package org.bukkit.craftbukkit.util;
 
-import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -9,8 +8,12 @@ import java.util.TreeSet;
 
 public class HashTreeSet<V> implements Set<V> {
 
-    private final HashSet<V> hash = Sets.newHashSet();
-    private final TreeSet<V> tree = new TreeSet<V>();
+    private HashSet<V> hash = new HashSet<V>();
+    private TreeSet<V> tree = new TreeSet<V>();
+
+    public HashTreeSet() {
+
+    }
 
     @Override
     public int size() {

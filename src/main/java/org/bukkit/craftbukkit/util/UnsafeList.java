@@ -181,7 +181,7 @@ public class UnsafeList<E> extends AbstractList<E> implements List<E>, RandomAcc
         return iterPool[poolCounter];
     }
 
-    protected void rangeCheck(int index) { // CatServer - private -> protected
+    private void rangeCheck(int index) {
         if (index >= size || index < 0) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }

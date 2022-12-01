@@ -1,52 +1,48 @@
 --- ../src-base/minecraft/net/minecraft/server/MinecraftServer.java
 +++ ../src-work/minecraft/net/minecraft/server/MinecraftServer.java
-@@ -2,6 +2,7 @@
+@@ -1,7 +1,7 @@
+ package net.minecraft.server;
  
  import com.google.common.collect.Lists;
- import com.google.common.collect.Queues;
+-import com.google.common.collect.Queues;
 +import com.google.common.collect.Sets;
  import com.google.common.util.concurrent.Futures;
  import com.google.common.util.concurrent.ListenableFuture;
  import com.google.common.util.concurrent.ListenableFutureTask;
-@@ -9,6 +10,11 @@
+@@ -9,6 +9,8 @@
  import com.mojang.authlib.GameProfileRepository;
  import com.mojang.authlib.minecraft.MinecraftSessionService;
  import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
-+
-+import gg.m2ke4u.lettuce.Server;
-+import gg.m2ke4u.skylight.WorkerWrapper;
 +import gg.m2ke4u.skylight.config.WorkerConfig;
 +import gg.m2ke4u.skylight.core.global.ParallelWorldTickTask;
  import io.netty.buffer.ByteBuf;
  import io.netty.buffer.ByteBufOutputStream;
  import io.netty.buffer.Unpooled;
-@@ -23,19 +29,21 @@
+@@ -23,19 +25,12 @@
  import java.nio.charset.StandardCharsets;
  import java.security.KeyPair;
  import java.text.SimpleDateFormat;
-+import java.util.ArrayList;
- import java.util.Arrays;
- import java.util.Collections;
-+import java.util.Comparator;
- import java.util.Date;
- import java.util.List;
- import java.util.Queue;
- import java.util.Random;
-+import java.util.Set;
- import java.util.UUID;
+-import java.util.Arrays;
+-import java.util.Collections;
+-import java.util.Date;
+-import java.util.List;
+-import java.util.Queue;
+-import java.util.Random;
+-import java.util.UUID;
 -import java.util.concurrent.Callable;
 -import java.util.concurrent.Executors;
 -import java.util.concurrent.FutureTask;
 -import java.util.function.Supplier;
++import java.util.*;
 +import java.util.concurrent.*;
++import java.util.concurrent.atomic.AtomicInteger;
  import javax.annotation.Nullable;
  import javax.imageio.ImageIO;
-+
 +import joptsimple.OptionSet;
  import net.minecraft.advancements.AdvancementManager;
  import net.minecraft.advancements.FunctionManager;
  import net.minecraft.command.CommandBase;
-@@ -55,6 +63,7 @@
+@@ -55,6 +50,7 @@
  import net.minecraft.profiler.Profiler;
  import net.minecraft.profiler.Snooper;
  import net.minecraft.server.dedicated.DedicatedServer;
@@ -54,13 +50,7 @@
  import net.minecraft.server.management.PlayerList;
  import net.minecraft.server.management.PlayerProfileCache;
  import net.minecraft.util.IProgressUpdate;
-@@ -73,39 +82,51 @@
- import net.minecraft.world.MinecraftException;
- import net.minecraft.world.ServerWorldEventHandler;
- import net.minecraft.world.World;
-+import net.minecraft.world.WorldProvider;
- import net.minecraft.world.WorldServer;
- import net.minecraft.world.WorldServerDemo;
+@@ -78,38 +74,47 @@
  import net.minecraft.world.WorldServerMulti;
  import net.minecraft.world.WorldSettings;
  import net.minecraft.world.WorldType;
@@ -70,25 +60,23 @@
  import net.minecraft.world.storage.ISaveHandler;
  import net.minecraft.world.storage.WorldInfo;
 +import net.minecraftforge.common.DimensionManager;
++import net.minecraftforge.fml.common.eventhandler.ASMEventHandler;
  import net.minecraftforge.fml.relauncher.Side;
  import net.minecraftforge.fml.relauncher.SideOnly;
-+
  import org.apache.commons.lang3.Validate;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
 +import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.Main;
-+import org.bukkit.craftbukkit.SpigotTimings;
 +import org.spigotmc.SlackActivityAccountant;
- 
 +import catserver.server.BukkitInjector;
 +import catserver.server.CatServer;
 +import catserver.server.mcauth.CatProxyAuthenticationService;
-+
+ 
  public abstract class MinecraftServer implements ICommandSender, Runnable, IThreadListener, ISnooperInfo
  {
 -    private static final Logger LOGGER = LogManager.getLogger();
++    public static Queue<Runnable> tasks = new ConcurrentLinkedQueue<>();
 +    public static final Logger LOGGER = LogManager.getLogger();
      public static final File USER_CACHE_FILE = new File("usercache.json");
 -    private final ISaveFormat anvilConverterForAnvilFile;
@@ -112,7 +100,12 @@
      private PlayerList playerList;
      private boolean serverRunning = true;
      private boolean serverStopped;
-@@ -123,11 +144,11 @@
+-    private int tickCounter;
++    public int tickCounter;
+     protected final Proxy serverProxy;
+     public String currentTask;
+     public int percentDone;
+@@ -123,46 +128,89 @@
      private int buildLimit;
      private int maxPlayerIdleMinutes;
      public final long[] tickTimeArray = new long[100];
@@ -126,7 +119,15 @@
      private String worldName;
      private boolean isDemo;
      private boolean enableBonusChest;
-@@ -143,26 +164,71 @@
+     private String resourcePackUrl = "";
+     private String resourcePackHash = "";
+     private boolean serverIsRunning;
+-    private long timeOfLastWarning;
+     private String userMessage;
+-    private boolean startProfiling;
+     private boolean isGamemodeForced;
+     private final YggdrasilAuthenticationService authService;
+     private final MinecraftSessionService sessionService;
      private final GameProfileRepository profileRepo;
      private final PlayerProfileCache profileCache;
      private long nanoTimeSinceStatusRefresh;
@@ -138,7 +139,7 @@
      @SideOnly(Side.CLIENT)
      private boolean worldIconSet;
 +    // CraftBukkit start
-+    public List<WorldServer> worldServerList = new ArrayList<>();
++    public List<WorldServer> worldServerList = Collections.synchronizedList(new ArrayList<>());
 +    public org.bukkit.craftbukkit.CraftServer server;
 +    public OptionSet options;
 +    public org.bukkit.command.ConsoleCommandSender console;
@@ -203,7 +204,7 @@
      public ServerCommandManager createCommandManager()
      {
          return new ServerCommandManager(this);
-@@ -220,83 +286,104 @@
+@@ -220,96 +268,113 @@
  
      public void loadAllWorlds(String saveName, String worldNameIn, long seed, WorldType type, String generatorOptions)
      {
@@ -361,7 +362,12 @@
      }
  
      public void initialWorldChunkLoad()
-@@ -309,7 +396,7 @@
+     {
+-        int i = 16;
+-        int j = 4;
+-        int k = 192;
+-        int l = 625;
+         int i1 = 0;
          this.setUserMessage("menu.generatingTerrain");
          int j1 = 0;
          LOGGER.info("Preparing start region for level 0");
@@ -370,7 +376,7 @@
          BlockPos blockpos = worldserver.getSpawnPoint();
          long k1 = getCurrentTimeMillis();
  
-@@ -330,6 +417,10 @@
+@@ -330,6 +395,10 @@
              }
          }
  
@@ -381,7 +387,7 @@
          this.clearCurrentTask();
      }
  
-@@ -379,7 +470,7 @@
+@@ -379,7 +448,7 @@
  
      public void saveAllWorlds(boolean isSilent)
      {
@@ -390,34 +396,27 @@
          {
              if (worldserver != null)
              {
-@@ -400,10 +491,24 @@
+@@ -400,10 +469,16 @@
          }
      }
  
 -    public void stopServer()
+-    {
+-        LOGGER.info("Stopping server");
 +    private boolean hasStopped = false;
 +    private final Object stopLock = new Object();
-+
-+    public void stopServer() throws MinecraftException
-     {
+ 
++    public void stopServer() throws MinecraftException, InterruptedException {
 +        org.spigotmc.AsyncCatcher.enabled = false; // Spigot
-+        // CraftBukkit start - prevent double stopping on multiple threads
 +        synchronized(stopLock) {
 +            if (hasStopped) return;
 +            hasStopped = true;
 +        }
-+        // CraftBukkit end
-         LOGGER.info("Stopping server");
--
-+        /*
-+        if (this.server != null) {
-+            this.server.disablePlugins();
-+        }
-+        */
++        LOGGER.info("Stopping server");
          if (this.getNetworkSystem() != null)
          {
              this.getNetworkSystem().terminateEndpoints();
-@@ -414,8 +519,15 @@
+@@ -414,8 +489,15 @@
              LOGGER.info("Saving players");
              this.playerList.saveAllPlayerData();
              this.playerList.removeAllPlayers();
@@ -433,7 +432,7 @@
          if (this.worlds != null)
          {
              LOGGER.info("Saving worlds");
-@@ -430,21 +542,42 @@
+@@ -430,21 +512,42 @@
  
              this.saveAllWorlds(false);
  
@@ -477,7 +476,7 @@
      public boolean isServerRunning()
      {
          return this.serverRunning;
-@@ -455,62 +588,129 @@
+@@ -455,62 +558,129 @@
          this.serverRunning = false;
      }
  
@@ -534,19 +533,20 @@
      {
          try
          {
-+            WorkerConfig.init();
              if (this.init())
              {
 +                net.minecraftforge.fml.common.FMLCommonHandler.instance().handleServerStarted();
                  this.currentTime = getCurrentTimeMillis();
                  long i = 0L;
                  this.statusResponse.setServerDescription(new TextComponentString(this.motd));
-                 this.statusResponse.setVersion(new ServerStatusResponse.Version("1.12.2", 340));
+-                this.statusResponse.setVersion(new ServerStatusResponse.Version("1.12.2", 340));
++                this.statusResponse.setVersion(new ServerStatusResponse.Version("SS1.12.2", 340));
                  this.applyServerIconToResponse(this.statusResponse);
  
 +                // Spigot start
 +                Arrays.fill( recentTps, 20 );
 +                long start = System.nanoTime(), lastTick = start - TICK_TIME, catchupTime = 0, curTime, wait, tickSection = start; // Paper - Further improve server tick loop
++                ASMEventHandler.started = true;
                  while (this.serverRunning)
                  {
 -                    long k = getCurrentTimeMillis();
@@ -635,7 +635,7 @@
          catch (Throwable throwable1)
          {
              LOGGER.error("Encountered an unexpected exception", throwable1);
-@@ -536,13 +736,13 @@
+@@ -536,13 +706,13 @@
                  LOGGER.error("We were unable to save this crash report to disk.");
              }
  
@@ -650,7 +650,7 @@
                  this.stopServer();
              }
              catch (Throwable throwable)
-@@ -551,6 +751,8 @@
+@@ -551,6 +721,8 @@
              }
              finally
              {
@@ -659,7 +659,7 @@
                  this.systemExitNow();
              }
          }
-@@ -577,6 +779,7 @@
+@@ -577,6 +749,7 @@
                  ImageIO.write(bufferedimage, "PNG", new ByteBufOutputStream(bytebuf));
                  ByteBuf bytebuf1 = Base64.encode(bytebuf);
                  response.setFavicon("data:image/png;base64," + bytebuf1.toString(StandardCharsets.UTF_8));
@@ -667,26 +667,27 @@
              }
              catch (Exception exception)
              {
-@@ -615,9 +818,18 @@
-     {
-     }
+@@ -617,17 +790,11 @@
  
-+    private final Server serverLettuce = new Server(this);
-+
-+    public Server getServerLettuce(){
-+        return this.serverLettuce;
-+    }
-+
      public void tick()
      {
-+        SpigotTimings.serverTickTimer.startTiming(); // Spigot
 +        this.slackActivityAccountant.tickStarted(); // Spigot
          long i = System.nanoTime();
 +        net.minecraftforge.fml.common.FMLCommonHandler.instance().onPreServerTick();
          ++this.tickCounter;
  
-         if (this.startProfiling)
-@@ -644,16 +856,29 @@
+-        if (this.startProfiling)
+-        {
+-            this.startProfiling = false;
+-            this.profiler.profilingEnabled = true;
+-            this.profiler.clearProfiling();
+-        }
+-
+-        this.profiler.startSection("root");
+         this.updateTimeLightAndEntities();
+ 
+         if (i - this.nanoTimeSinceStatusRefresh >= 5000000000L)
+@@ -644,20 +811,16 @@
  
              Collections.shuffle(Arrays.asList(agameprofile));
              this.statusResponse.getPlayers().setPlayers(agameprofile);
@@ -696,92 +697,109 @@
 -        if (this.tickCounter % 900 == 0)
 +        if (autosavePeriod > 0 && this.tickCounter % autosavePeriod == 0) // CraftBukkit
          {
-+            SpigotTimings.worldSaveTimer.startTiming(); // Spigot
-             this.profiler.startSection("save");
+-            this.profiler.startSection("save");
              this.playerList.saveAllPlayerData();
--            this.saveAllWorlds(true);
-+            catserver.server.WeakWorldSaveManager.saveAllWorlds(); // this.saveAllWorlds(true); // CatServer - Don't save all worlds at once
-             this.profiler.endSection();
-+            SpigotTimings.worldSaveTimer.stopTiming(); // Spigot
+             this.saveAllWorlds(true);
+-            this.profiler.endSection();
          }
  
-+        // CatServer start
-+        if (catserver.server.WeakWorldSaveManager.isNeedTick()) {
-+            SpigotTimings.worldSaveTimer.startTiming(); // Spigot
-+            this.profiler.startSection("save");
-+            catserver.server.WeakWorldSaveManager.onTick(); // CatServer - Save a world per tick
-+            this.profiler.endSection();
-+            SpigotTimings.worldSaveTimer.stopTiming(); // Spigot
-+        }
-+        // CatServer end
-+
-         this.profiler.startSection("tallying");
+-        this.profiler.startSection("tallying");
          this.tickTimeArray[this.tickCounter % 100] = System.nanoTime() - i;
-         this.profiler.endSection();
-@@ -671,87 +896,93 @@
+-        this.profiler.endSection();
+-        this.profiler.startSection("snooper");
  
-         this.profiler.endSection();
-         this.profiler.endSection();
+         if (!this.usageSnooper.isSnooperRunning() && this.tickCounter > 100)
+         {
+@@ -669,91 +832,137 @@
+             this.usageSnooper.addMemoryStatsToSnooper();
+         }
+ 
+-        this.profiler.endSection();
+-        this.profiler.endSection();
 +        net.minecraftforge.fml.common.FMLCommonHandler.instance().onPostServerTick();
 +        org.spigotmc.WatchdogThread.tick(); // Spigot
 +        this.slackActivityAccountant.tickEnded(System.nanoTime() - i); // Spigot
-+        SpigotTimings.serverTickTimer.stopTiming(); // Spigot
 +        org.spigotmc.CustomTimingsHandler.tick(); // Spigot
      }
  
-+    public static ForkJoinPool GLOBAL_EXECUTOR ;
-+    public static Executor ENTITIES_EXECUTOR;
-+    private final ParallelWorldTickTask tickTask = new ParallelWorldTickTask();
-+    private boolean inited = false;
-+
-+    private void initExecutors(){
-+        if (!this.inited){
-+            this.inited = true;
-+            GLOBAL_EXECUTOR = WorkerWrapper.getNewPool(WorkerConfig.GLOBAL_WORKER_THREADS);
-+            ENTITIES_EXECUTOR = WorkerWrapper.getNewPool(WorkerConfig.ENTITIES_WORKER_THREADS);
-+        }
+-    public void updateTimeLightAndEntities()
+-    {
+-        this.profiler.startSection("jobs");
++    static {
++        WorkerConfig.init();
 +    }
-+
-     public void updateTimeLightAndEntities()
-     {
-+        this.initExecutors();
-+        SpigotTimings.schedulerTimer.startTiming(); // Spigot
-+        this.server.getScheduler().mainThreadHeartbeat(this.tickCounter); // CraftBukkit
-+        SpigotTimings.schedulerTimer.stopTiming(); // Spigot
-         this.profiler.startSection("jobs");
  
 -        synchronized (this.futureTaskQueue)
 -        {
 -            while (!this.futureTaskQueue.isEmpty())
 -            {
 -                Util.runTask(this.futureTaskQueue.poll(), LOGGER);
--            }
--        }
-+        catserver.server.security.BaseSecurityManager.onTick(); // CatServer
- 
-+        // Spigot start
-+        FutureTask<?> entry;
-+        int count = this.futureTaskQueue.size();
-+        while (count-- > 0 && (entry = this.futureTaskQueue.poll()) != null) {
-+            Util.runTask(entry, MinecraftServer.LOGGER);
-+         }
-+        // Spigot end
++    //Thread management
++    public static Set<Thread> server_workers = ConcurrentHashMap.newKeySet();
++    private static final AtomicInteger threadId = new AtomicInteger();
 +
-         this.profiler.endStartSection("levels");
-+        // CraftBukkit start
-+        // Run tasks that are waiting on processing
-+        SpigotTimings.processQueueTimer.startTiming(); // Spigot
-+        while (!processQueue.isEmpty()) {
-+            processQueue.remove().run();
-+        }
-+        SpigotTimings.processQueueTimer.stopTiming(); // Spigot
++    public static ForkJoinPool.ForkJoinWorkerThreadFactory service_worker_wrapper = pool->{
++        ForkJoinWorkerThread workerThread = new ForkJoinWorkerThread(pool){
++            protected void onStart() {
++                server_workers.add(Thread.currentThread());
+             }
++
++            protected void onTermination(Throwable exception) {
++                if (WorkerConfig.AUTO_CLEAR_WORKERS){
++                    server_workers.remove(Thread.currentThread());
++                }
++                super.onTermination(exception);
++            }
++        };
++        workerThread.setDaemon(true);
++        workerThread.setPriority(5);
++        workerThread.setContextClassLoader(MinecraftServer.class.getClassLoader());
++        workerThread.setName("Lettuce-Background-Fork/Join-Worker # "+threadId.getAndIncrement());
++        return workerThread;
++    };
++
++    public static ThreadFactory server_worker_wrapper_simple = task->{
++        Thread worker = new Thread(()->{
++            try {
++                task.run();
++            }finally {
++                server_workers.remove(Thread.currentThread());
++            }
++        },"Lettuce-Background-Pool-Worker # "+threadId.getAndIncrement());
++        server_workers.add(worker);
++        worker.setPriority(5);
++        worker.setContextClassLoader(MinecraftServer.class.getClassLoader());
++        worker.setDaemon(true);
++        return worker;
++    };
++
++    public static void cleanWorkers(){
++        if (!server_workers.isEmpty()){
++            int counter = 0;
++            for (Thread thread : server_workers){
++                if (thread.getState().equals(Thread.State.TERMINATED)){
++                    server_workers.remove(thread);
++                }
++                if(counter > 200){
++                    break;
++                }
++                ++counter;
++            }
+         }
++    }
+ 
+-        this.profiler.endStartSection("levels");
++    //Easily to get a new Worker pool as type as ForkJoinPool
++    public static ForkJoinPool wrapNewWorkerPool(int threads, Thread.UncaughtExceptionHandler handler){
++        return new ForkJoinPool(threads,service_worker_wrapper,handler,false);
++    }
  
 -        for (int j = 0; j < this.worlds.length; ++j)
 -        {
 -            long i = System.nanoTime();
-+        SpigotTimings.chunkIOTickTimer.startTiming(); // Spigot
-+        org.bukkit.craftbukkit.chunkio.ChunkIOExecutor.tick();
-+        SpigotTimings.chunkIOTickTimer.stopTiming(); // Spigot
++    public static boolean isCurrentWorkerThread(){
++        return server_workers.contains(Thread.currentThread());
++    }
  
 -            if (j == 0 || this.getAllowNether())
 -            {
@@ -790,16 +808,22 @@
 -                {
 -                    return worldserver.getWorldInfo().getWorldName();
 -                });
--
++    public static final ForkJoinPool ENTITIES_EXECUTOR = wrapNewWorkerPool(WorkerConfig.ENTITIES_WORKER_THREADS,null);
++    public static final ForkJoinPool GLOBAL_EXECUTOR = wrapNewWorkerPool(WorkerConfig.GLOBAL_WORKER_THREADS, null);
+ 
 -                if (this.tickCounter % 20 == 0)
 -                {
 -                    this.profiler.startSection("timeSync");
 -                    this.playerList.sendPacketToAllPlayersInDimension(new SPacketTimeUpdate(worldserver.getTotalWorldTime(), worldserver.getWorldTime(), worldserver.getGameRules().getBoolean("doDaylightCycle")), worldserver.provider.getDimensionType().getId());
 -                    this.profiler.endSection();
 -                }
--
++    //Server workers
++    private ExecutorService worldExecutor = null;
++    private final Map<World,ExecutorService> worldExecutors = new ConcurrentHashMap<>();
+ 
 -                this.profiler.startSection("tick");
--
++    private final ParallelWorldTickTask worldTickTask = new ParallelWorldTickTask();
+ 
 -                try
 -                {
 -                    worldserver.tick();
@@ -810,11 +834,20 @@
 -                    worldserver.addWorldInfoToCrashReport(crashreport);
 -                    throw new ReportedException(crashreport);
 -                }
--
++    public void updateTimeLightAndEntities()
++    {
++        if (WorkerConfig.AUTO_CLEAR_WORKERS){
++            cleanWorkers();
++        }
+ 
 -                try
 -                {
 -                    worldserver.updateEntities();
--                }
++        if (this.worldExecutors.size()<this.worlds.length || this.worldExecutors.isEmpty()){
++            for (WorldServer worldServer : this.worlds){
++                if (!this.worldExecutors.containsKey(worldServer)){
++                    worldExecutors.put(worldServer,wrapNewWorkerPool(1,null));
+                 }
 -                catch (Throwable throwable)
 -                {
 -                    CrashReport crashreport1 = CrashReport.makeCrashReport(throwable, "Exception ticking world entities");
@@ -827,48 +860,59 @@
 -                worldserver.getEntityTracker().tick();
 -                this.profiler.endSection();
 -                this.profiler.endSection();
-+        SpigotTimings.timeUpdateTimer.startTiming(); // Spigot
+             }
++        }
+ 
+-            this.timeOfLastDimensionTick[j][this.tickCounter % 100] = System.nanoTime() - i;
++        if (this.worldExecutor == null){
++            this.worldExecutor = wrapNewWorkerPool(this.worlds.length,null);
+         }
+ 
+-        this.profiler.endStartSection("connection");
++        this.server.getScheduler().mainThreadHeartbeat(this.tickCounter); // CraftBukkit
++
++        FutureTask<?> entry;
++        int count = this.futureTaskQueue.size();
++        while (count-- > 0 && (entry = this.futureTaskQueue.poll()) != null) {
++            Util.runTask(entry, MinecraftServer.LOGGER);
++         }
++
++        while (!processQueue.isEmpty()) {
++            processQueue.remove().run();
++        }
++
++        org.bukkit.craftbukkit.chunkio.ChunkIOExecutor.tick();
++
 +        // Send time updates to everyone, it will get the right time from the world the player is in.
 +        if (this.tickCounter % 20 == 0) {
 +            for (int i = 0; i < this.getPlayerList().getPlayers().size(); ++i) {
 +                EntityPlayerMP entityplayer = (EntityPlayerMP) this.getPlayerList().getPlayers().get(i);
 +                entityplayer.connection.sendPacket(new SPacketTimeUpdate(entityplayer.world.getTotalWorldTime(), entityplayer.getPlayerTime(), entityplayer.world.getGameRules().getBoolean("doDaylightCycle"))); // Add support for per player time
-             }
--
--            this.timeOfLastDimensionTick[j][this.tickCounter % 100] = System.nanoTime() - i;
-         }
-+        SpigotTimings.timeUpdateTimer.stopTiming(); // Spigot
++            }
++        }
 +        net.minecraftforge.common.chunkio.ChunkIOExecutor.tick();
 +        catserver.server.command.internal.CommandChunkStats.onServerTick();
- 
-+        this.tickTask.call(this);
-+
-+        this.profiler.endStartSection("dim_unloading");
++        this.worldTickTask.call(this);
 +        net.minecraftforge.common.DimensionManager.unloadWorlds(worldTickTimes);
-         this.profiler.endStartSection("connection");
-+        SpigotTimings.connectionTimer.startTiming(); // Spigot
          this.getNetworkSystem().networkTick();
-+        SpigotTimings.connectionTimer.stopTiming(); // Spigot
-         this.profiler.endStartSection("players");
-+        SpigotTimings.playerListTimer.startTiming(); // Spigot
+-        this.profiler.endStartSection("players");
          this.playerList.onTick();
-+        SpigotTimings.playerListTimer.stopTiming(); // Spigot
-         this.profiler.endStartSection("commandFunctions");
-+        SpigotTimings.commandFunctionsTimer.startTiming(); // Spigot
+-        this.profiler.endStartSection("commandFunctions");
          this.getFunctionManager().update();
-+        SpigotTimings.commandFunctionsTimer.stopTiming();// Spigot
-         this.profiler.endStartSection("tickables");
- 
-+        SpigotTimings.tickablesTimer.startTiming(); // Spigot
-         for (int k = 0; k < this.tickables.size(); ++k)
-         {
-             ((ITickable)this.tickables.get(k)).update();
+-        this.profiler.endStartSection("tickables");
+-
+-        for (int k = 0; k < this.tickables.size(); ++k)
+-        {
+-            ((ITickable)this.tickables.get(k)).update();
++        for (ITickable tickable : this.tickables) {
++            tickable.update();
          }
-+        SpigotTimings.tickablesTimer.stopTiming(); // Spigot
- 
-         this.profiler.endSection();
+-
+-        this.profiler.endSection();
      }
-@@ -763,8 +994,11 @@
+ 
+     public boolean getAllowNether()
+@@ -763,8 +972,11 @@
  
      public void startServerThread()
      {
@@ -881,7 +925,7 @@
      }
  
      public File getFile(String fileName)
-@@ -779,16 +1013,20 @@
+@@ -779,16 +991,20 @@
  
      public WorldServer getWorld(int dimension)
      {
@@ -908,17 +952,28 @@
      public String getMinecraftVersion()
      {
          return "1.12.2";
-@@ -816,7 +1054,8 @@
+@@ -816,19 +1032,11 @@
  
      public String getServerModName()
      {
 -        return "vanilla";
-+        // TODO: Should we change this for CraftBukkit's server name?
 +        return "Lettuce";
      }
  
      public CrashReport addServerInfoToCrashReport(CrashReport report)
-@@ -845,7 +1084,7 @@
+     {
+-        report.getCategory().addDetail("Profiler Position", new ICrashReportDetail<String>()
+-        {
+-            public String call() throws Exception
+-            {
+-                return MinecraftServer.this.profiler.profilingEnabled ? MinecraftServer.this.profiler.getNameOfLastSection() : "N/A (disabled)";
+-            }
+-        });
+-
+         if (this.playerList != null)
+         {
+             report.getCategory().addDetail("Player Count", new ICrashReportDetail<String>()
+@@ -845,7 +1053,7 @@
  
      public List<String> getTabCompletions(ICommandSender sender, String input, @Nullable BlockPos pos, boolean hasTargetBlock)
      {
@@ -927,7 +982,7 @@
          boolean flag = input.startsWith("/");
  
          if (flag)
-@@ -862,11 +1101,9 @@
+@@ -862,11 +1070,9 @@
              {
                  if (CommandBase.doesStringStartWith(s2, s1))
                  {
@@ -940,7 +995,7 @@
          }
          else
          {
-@@ -879,22 +1116,24 @@
+@@ -879,22 +1085,24 @@
                  {
                      if (flag1 && !hasTargetBlock)
                      {
@@ -970,7 +1025,7 @@
      }
  
      public String getName()
-@@ -904,7 +1143,8 @@
+@@ -904,7 +1112,8 @@
  
      public void sendMessage(ITextComponent component)
      {
@@ -980,7 +1035,7 @@
      }
  
      public boolean canUseCommand(int permLevel, String commandName)
-@@ -947,13 +1187,11 @@
+@@ -947,13 +1156,11 @@
          this.folderName = name;
      }
  
@@ -994,7 +1049,7 @@
      public String getWorldName()
      {
          return this.worldName;
-@@ -966,7 +1204,7 @@
+@@ -966,7 +1173,7 @@
  
      public void setDifficultyForAllWorlds(EnumDifficulty difficulty)
      {
@@ -1003,7 +1058,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1048,9 +1286,9 @@
+@@ -1048,9 +1255,9 @@
          playerSnooper.addClientStat("avg_tick_ms", Integer.valueOf((int)(MathHelper.average(this.tickTimeArray) * 1.0E-6D)));
          int l = 0;
  
@@ -1015,7 +1070,7 @@
              {
                  if (worldserver1 != null)
                  {
-@@ -1088,7 +1326,8 @@
+@@ -1088,7 +1295,8 @@
  
      public boolean isServerInOnlineMode()
      {
@@ -1025,7 +1080,7 @@
      }
  
      public void setOnlineMode(boolean online)
-@@ -1177,12 +1416,12 @@
+@@ -1177,12 +1385,12 @@
  
      public void setPlayerList(PlayerList list)
      {
@@ -1040,7 +1095,19 @@
          {
              worldserver1.getWorldInfo().setGameType(gameMode);
          }
-@@ -1224,7 +1463,7 @@
+@@ -1211,10 +1419,7 @@
+         return this.tickCounter;
+     }
+ 
+-    public void enableProfiling()
+-    {
+-        this.startProfiling = true;
+-    }
++    public void enableProfiling() {}
+ 
+     @SideOnly(Side.CLIENT)
+     public Snooper getPlayerUsageSnooper()
+@@ -1224,7 +1429,7 @@
  
      public World getEntityWorld()
      {
@@ -1049,7 +1116,7 @@
      }
  
      public boolean isBlockProtected(World worldIn, BlockPos pos, EntityPlayer playerIn)
-@@ -1285,7 +1524,7 @@
+@@ -1285,7 +1490,7 @@
      @Nullable
      public Entity getEntityFromUuid(UUID uuid)
      {
@@ -1058,7 +1125,7 @@
          {
              if (worldserver1 != null)
              {
-@@ -1303,7 +1542,7 @@
+@@ -1303,7 +1508,7 @@
  
      public boolean sendCommandFeedback()
      {
@@ -1067,7 +1134,7 @@
      }
  
      public MinecraftServer getServer()
-@@ -1311,6 +1550,11 @@
+@@ -1311,6 +1516,11 @@
          return this;
      }
  
@@ -1079,12 +1146,12 @@
      public int getMaxWorldSize()
      {
          return 29999984;
-@@ -1320,21 +1564,20 @@
+@@ -1320,15 +1530,14 @@
      {
          Validate.notNull(callable);
  
 -        if (!this.isCallingFromMinecraftThread() && !this.isServerStopped())
-+        if (!this.isCallingFromMinecraftThread() && !WorkerWrapper.isWorker()) // CraftBukkit
++        if (!this.isCallingFromMinecraftThread()/* && !this.isServerStopped()*/) // CraftBukkit
          {
              ListenableFutureTask<V> listenablefuturetask = ListenableFutureTask.<V>create(callable);
  
@@ -1100,14 +1167,7 @@
          }
          else
          {
-             try
-             {
--                return Futures.<V>immediateFuture(callable.call());
-+                return Futures.immediateFuture(callable.call());
-             }
-             catch (Exception exception)
-             {
-@@ -1366,20 +1609,20 @@
+@@ -1366,12 +1575,12 @@
  
      public AdvancementManager getAdvancementManager()
      {
@@ -1122,9 +1182,8 @@
      }
  
      public void reload()
-     {
--        if (this.isCallingFromMinecraftThread())
-+        if (this.isCallingFromMinecraftThread() && !WorkerWrapper.isWorker())
+@@ -1379,7 +1588,7 @@
+         if (this.isCallingFromMinecraftThread())
          {
              this.getPlayerList().saveAllPlayerData();
 -            this.worlds[0].getLootTableManager().reloadLootTables();
@@ -1132,7 +1191,7 @@
              this.getAdvancementManager().reload();
              this.getFunctionManager().reload();
              this.getPlayerList().reloadResources();
-@@ -1409,120 +1652,47 @@
+@@ -1409,120 +1618,47 @@
      }
  
      @SideOnly(Side.SERVER)
@@ -1279,7 +1338,7 @@
          }
          catch (Exception exception)
          {
-@@ -1539,7 +1709,8 @@
+@@ -1539,7 +1675,8 @@
      @SideOnly(Side.SERVER)
      public boolean isDebuggingEnabled()
      {
@@ -1289,7 +1348,7 @@
      }
  
      @SideOnly(Side.SERVER)
-@@ -1598,4 +1769,9 @@
+@@ -1598,4 +1735,9 @@
      {
          return this.serverThread;
      }

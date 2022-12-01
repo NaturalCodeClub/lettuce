@@ -23,3 +23,11 @@
          if (args.length < 1)
          {
              throw new WrongUsageException("commands.debug.usage", new Object[0]);
+@@ -54,7 +63,6 @@
+                 }
+ 
+                 notifyCommandListener(sender, this, "commands.debug.start", new Object[0]);
+-                server.enableProfiling();
+                 this.profileStartTime = MinecraftServer.getCurrentTimeMillis();
+                 this.profileStartTick = server.getTickCounter();
+             }

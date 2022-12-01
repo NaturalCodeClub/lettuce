@@ -9,19 +9,13 @@ import gg.m2ke4u.skylight.core.tiles.SingleTickableTileEntityTickTask;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
-import java.util.ArrayList;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 
 public final class UpdateEntitiesTask implements TickTask<World> {
     private volatile boolean finished = false;
     private final Executor executor;
     private volatile boolean terminated = false;
     private final SinglePartProfiler profiler = new SinglePartProfiler("ConcurrentEntities");
-
-    private static final SingleEntityTickTask entityTickTask = new SingleEntityTickTask();
-    private static final SingleTickableTileEntityTickTask tileTickTask = new SingleTickableTileEntityTickTask();
-    private static final SingleSimpleTileEntityTickTask addEdTileTickTask = new SingleSimpleTileEntityTickTask();
 
     public UpdateEntitiesTask(Executor executor){
         this.executor = executor;
@@ -63,6 +57,7 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                 if (this.terminated){
                     return;
                 }
+                final SingleEntityTickTask entityTickTask = new SingleEntityTickTask();
                 entityTickTask.call(entity2);
             },this.executor);
 
@@ -84,7 +79,8 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                 if (this.terminated){
                     return;
                 }
-                tileTickTask.call(tileentity);
+                final SingleTickableTileEntityTickTask tickableTileEntityTickTask = new SingleTickableTileEntityTickTask();
+                tickableTileEntityTickTask.call(tileentity);
             },this.executor);
             input.processingLoadedTiles = false;
 
@@ -94,7 +90,8 @@ public final class UpdateEntitiesTask implements TickTask<World> {
                     if (this.terminated){
                         return;
                     }
-                   addEdTileTickTask.call(tileentity1);
+                    final SingleSimpleTileEntityTickTask task = new SingleSimpleTileEntityTickTask();
+                    task.call(tileentity1);
                 },this.executor);
                 input.addedTileEntityList.clear();
             }
@@ -123,15 +120,5 @@ public final class UpdateEntitiesTask implements TickTask<World> {
     @Override
     public void forceTerminate() {
         this.terminated = true;
-    }
-
-    @Override
-    public void awaitFinish(long nanosTimeOut) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void awaitFinish() {
-        throw new UnsupportedOperationException();
     }
 }

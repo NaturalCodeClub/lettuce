@@ -20,8 +20,11 @@
              --this.renderEntitiesStartupCounter;
          }
          else
-@@ -565,9 +567,12 @@
-             this.world.profiler.startSection("prepare");
+@@ -562,12 +564,14 @@
+             double d0 = renderViewEntity.prevPosX + (renderViewEntity.posX - renderViewEntity.prevPosX) * (double)partialTicks;
+             double d1 = renderViewEntity.prevPosY + (renderViewEntity.posY - renderViewEntity.prevPosY) * (double)partialTicks;
+             double d2 = renderViewEntity.prevPosZ + (renderViewEntity.posZ - renderViewEntity.prevPosZ) * (double)partialTicks;
+-            this.world.profiler.startSection("prepare");
              TileEntityRendererDispatcher.instance.prepare(this.world, this.mc.getTextureManager(), this.mc.fontRenderer, this.mc.getRenderViewEntity(), this.mc.objectMouseOver, partialTicks);
              this.renderManager.cacheActiveRenderInfo(this.world, this.mc.fontRenderer, this.mc.getRenderViewEntity(), this.mc.pointedEntity, this.mc.gameSettings, partialTicks);
 +            if(pass == 0)
@@ -33,9 +36,11 @@
              Entity entity = this.mc.getRenderViewEntity();
              double d3 = entity.lastTickPosX + (entity.posX - entity.lastTickPosX) * (double)partialTicks;
              double d4 = entity.lastTickPosY + (entity.posY - entity.lastTickPosY) * (double)partialTicks;
-@@ -579,11 +584,15 @@
+@@ -577,13 +581,16 @@
+             TileEntityRendererDispatcher.staticPlayerZ = d5;
+             this.renderManager.setRenderPosition(d3, d4, d5);
              this.mc.entityRenderer.enableLightmap();
-             this.world.profiler.endStartSection("global");
+-            this.world.profiler.endStartSection("global");
              List<Entity> list = this.world.getLoadedEntityList();
 +            if (pass == 0)
 +            {
@@ -49,7 +54,12 @@
                  ++this.countEntitiesRendered;
  
                  if (entity1.isInRangeToRender3d(d0, d1, d2))
-@@ -597,7 +606,7 @@
+@@ -592,12 +599,11 @@
+                 }
+             }
+ 
+-            this.world.profiler.endStartSection("entities");
+             List<Entity> list1 = Lists.<Entity>newArrayList();
              List<Entity> list2 = Lists.<Entity>newArrayList();
              BlockPos.PooledMutableBlockPos blockpos$pooledmutableblockpos = BlockPos.PooledMutableBlockPos.retain();
  
@@ -58,7 +68,7 @@
              {
                  Chunk chunk = this.world.getChunkFromBlockCoords(renderglobal$containerlocalrenderinformation.renderChunk.getPosition());
                  ClassInheritanceMultiMap<Entity> classinheritancemultimap = chunk.getEntityLists()[renderglobal$containerlocalrenderinformation.renderChunk.getPosition().getY() / 16];
-@@ -606,6 +615,7 @@
+@@ -606,6 +612,7 @@
                  {
                      for (Entity entity2 : classinheritancemultimap)
                      {
@@ -66,16 +76,22 @@
                          boolean flag = this.renderManager.shouldRender(entity2, camera, d0, d1, d2) || entity2.isRidingOrBeingRiddenBy(this.mc.player);
  
                          if (flag)
-@@ -642,6 +652,7 @@
+@@ -642,9 +649,9 @@
                  }
              }
  
 +            if(pass == 0)
              if (this.isRenderEntityOutlines() && (!list1.isEmpty() || this.entityOutlinesRendered))
              {
-                 this.world.profiler.endStartSection("entityOutlines");
-@@ -681,7 +692,8 @@
-             this.world.profiler.endStartSection("blockentities");
+-                this.world.profiler.endStartSection("entityOutlines");
+                 this.entityOutlineFramebuffer.framebufferClear();
+                 this.entityOutlinesRendered = !list1.isEmpty();
+ 
+@@ -678,10 +685,10 @@
+                 this.mc.getFramebuffer().bindFramebuffer(false);
+             }
+ 
+-            this.world.profiler.endStartSection("blockentities");
              RenderHelper.enableStandardItemLighting();
  
 -            for (RenderGlobal.ContainerLocalRenderInformation renderglobal$containerlocalrenderinformation1 : this.renderInfos)
@@ -84,7 +100,7 @@
              {
                  List<TileEntity> list3 = renderglobal$containerlocalrenderinformation1.renderChunk.getCompiledChunk().getTileEntities();
  
-@@ -689,6 +701,7 @@
+@@ -689,6 +696,7 @@
                  {
                      for (TileEntity tileentity2 : list3)
                      {
@@ -92,7 +108,7 @@
                          TileEntityRendererDispatcher.instance.render(tileentity2, partialTicks, -1);
                      }
                  }
-@@ -698,9 +711,11 @@
+@@ -698,9 +706,11 @@
              {
                  for (TileEntity tileentity : this.setTileEntities)
                  {
@@ -104,7 +120,7 @@
  
              this.preRenderDamagedBlocks();
  
-@@ -776,7 +791,7 @@
+@@ -776,7 +786,7 @@
      {
          int i = 0;
  
@@ -113,7 +129,42 @@
          {
              CompiledChunk compiledchunk = renderglobal$containerlocalrenderinformation.renderChunk.compiledChunk;
  
-@@ -847,15 +862,15 @@
+@@ -800,8 +810,6 @@
+         {
+             this.loadRenderers();
+         }
+-
+-        this.world.profiler.startSection("camera");
+         double d0 = viewEntity.posX - this.frustumUpdatePosX;
+         double d1 = viewEntity.posY - this.frustumUpdatePosY;
+         double d2 = viewEntity.posZ - this.frustumUpdatePosZ;
+@@ -817,12 +825,10 @@
+             this.viewFrustum.updateChunkPositions(viewEntity.posX, viewEntity.posZ);
+         }
+ 
+-        this.world.profiler.endStartSection("renderlistcamera");
+         double d3 = viewEntity.lastTickPosX + (viewEntity.posX - viewEntity.lastTickPosX) * partialTicks;
+         double d4 = viewEntity.lastTickPosY + (viewEntity.posY - viewEntity.lastTickPosY) * partialTicks;
+         double d5 = viewEntity.lastTickPosZ + (viewEntity.posZ - viewEntity.lastTickPosZ) * partialTicks;
+         this.renderContainer.initialize(d3, d4, d5);
+-        this.world.profiler.endStartSection("cull");
+ 
+         if (this.debugFixedClippingHelper != null)
+         {
+@@ -831,7 +837,6 @@
+             camera = frustum;
+         }
+ 
+-        this.mc.mcProfiler.endStartSection("culling");
+         BlockPos blockpos1 = new BlockPos(d3, d4 + (double)viewEntity.getEyeHeight(), d5);
+         RenderChunk renderchunk = this.viewFrustum.getRenderChunk(blockpos1);
+         BlockPos blockpos = new BlockPos(MathHelper.floor(d3 / 16.0D) * 16, MathHelper.floor(d4 / 16.0D) * 16, MathHelper.floor(d5 / 16.0D) * 16);
+@@ -842,20 +847,19 @@
+         this.lastViewEntityPitch = (double)viewEntity.rotationPitch;
+         this.lastViewEntityYaw = (double)viewEntity.rotationYaw;
+         boolean flag = this.debugFixedClippingHelper != null;
+-        this.mc.mcProfiler.endStartSection("update");
+ 
          if (!flag && this.displayListEntitiesDirty)
          {
              this.displayListEntitiesDirty = false;
@@ -132,7 +183,7 @@
                  Set<EnumFacing> set1 = this.getVisibleFacings(blockpos1);
  
                  if (set1.size() == 1)
-@@ -895,10 +910,10 @@
+@@ -895,20 +899,18 @@
                      {
                          RenderChunk renderchunk1 = this.viewFrustum.getRenderChunk(new BlockPos((j << 4) + 8, i, (k << 4) + 8));
  
@@ -145,8 +196,10 @@
                          }
                      }
                  }
-@@ -908,7 +923,7 @@
+             }
  
+-            this.mc.mcProfiler.startSection("iteration");
+-
              while (!queue.isEmpty())
              {
 -                RenderGlobal.ContainerLocalRenderInformation renderglobal$containerlocalrenderinformation1 = queue.poll();
@@ -154,7 +207,7 @@
                  RenderChunk renderchunk3 = renderglobal$containerlocalrenderinformation1.renderChunk;
                  EnumFacing enumfacing2 = renderglobal$containerlocalrenderinformation1.facing;
                  this.renderInfos.add(renderglobal$containerlocalrenderinformation1);
-@@ -919,7 +934,7 @@
+@@ -919,7 +921,7 @@
  
                      if ((!flag1 || !renderglobal$containerlocalrenderinformation1.hasDirection(enumfacing1.getOpposite())) && (!flag1 || enumfacing2 == null || renderchunk3.getCompiledChunk().isVisible(enumfacing2.getOpposite(), enumfacing1)) && renderchunk2 != null && renderchunk2.setFrameIndex(frameCount) && camera.isBoundingBoxInFrustum(renderchunk2.boundingBox))
                      {
@@ -163,7 +216,19 @@
                          renderglobal$containerlocalrenderinformation.setDirection(renderglobal$containerlocalrenderinformation1.setFacing, enumfacing1);
                          queue.add(renderglobal$containerlocalrenderinformation);
                      }
-@@ -941,7 +956,7 @@
+@@ -929,19 +931,16 @@
+             this.mc.mcProfiler.endSection();
+         }
+ 
+-        this.mc.mcProfiler.endStartSection("captureFrustum");
+-
+         if (this.debugFixTerrainFrustum)
+         {
+             this.fixTerrainFrustum(d3, d4, d5);
+             this.debugFixTerrainFrustum = false;
+         }
+ 
+-        this.mc.mcProfiler.endStartSection("rebuildNear");
          Set<RenderChunk> set = this.chunksToUpdate;
          this.chunksToUpdate = Sets.<RenderChunk>newLinkedHashSet();
  
@@ -172,7 +237,7 @@
          {
              RenderChunk renderchunk4 = renderglobal$containerlocalrenderinformation2.renderChunk;
  
-@@ -951,7 +966,7 @@
+@@ -951,22 +950,19 @@
                  BlockPos blockpos2 = renderchunk4.getPosition().add(8, 8, 8);
                  boolean flag3 = blockpos2.distanceSq(blockpos1) < 768.0D;
  
@@ -181,7 +246,22 @@
                  {
                      this.chunksToUpdate.add(renderchunk4);
                  }
-@@ -1073,7 +1088,7 @@
+                 else
+                 {
+-                    this.mc.mcProfiler.startSection("build near");
+                     this.renderDispatcher.updateChunkNow(renderchunk4);
+                     renderchunk4.clearNeedsUpdate();
+-                    this.mc.mcProfiler.endSection();
+                 }
+             }
+         }
+ 
+         this.chunksToUpdate.addAll(set);
+-        this.mc.mcProfiler.endSection();
+     }
+ 
+     private Set<EnumFacing> getVisibleFacings(BlockPos pos)
+@@ -1073,7 +1069,7 @@
                  this.prevRenderSortZ = entityIn.posZ;
                  int k = 0;
  
@@ -190,7 +270,7 @@
                  {
                      if (renderglobal$containerlocalrenderinformation.renderChunk.compiledChunk.isLayerStarted(blockLayerIn) && k++ < 15)
                      {
-@@ -1253,6 +1268,13 @@
+@@ -1253,6 +1249,13 @@
  
      public void renderSky(float partialTicks, int pass)
      {
@@ -204,7 +284,7 @@
          if (this.mc.world.provider.getDimensionType().getId() == 1)
          {
              this.renderSkyEnd();
-@@ -1470,6 +1492,7 @@
+@@ -1470,6 +1473,7 @@
  
      public void renderClouds(float partialTicks, int pass, double p_180447_3_, double p_180447_5_, double p_180447_7_)
      {
@@ -212,7 +292,7 @@
          if (this.mc.world.provider.isSurfaceWorld())
          {
              if (this.mc.gameSettings.shouldRenderClouds() == 2)
-@@ -1892,8 +1915,11 @@
+@@ -1892,8 +1896,11 @@
                  double d7 = (double)blockpos.getY() - d4;
                  double d8 = (double)blockpos.getZ() - d5;
                  Block block = this.world.getBlockState(blockpos).getBlock();
@@ -225,7 +305,7 @@
                  {
                      if (d6 * d6 + d7 * d7 + d8 * d8 > 1024.0D)
                      {
-@@ -2388,7 +2414,7 @@
+@@ -2388,7 +2395,7 @@
  
                  if (block.getDefaultState().getMaterial() != Material.AIR)
                  {

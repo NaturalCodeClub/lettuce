@@ -35,7 +35,7 @@ public class ParallelWorldTickTask implements TickTask<MinecraftServer> {
                 net.minecraftforge.fml.common.FMLCommonHandler.instance().onPostWorldTick(worldserver);
                 worldserver.getEntityTracker().tick();
                 worldserver.explosionDensityCache.clear();
-                if (input.worldTickTimes.containsKey(id)) input.worldTickTimes.get(id)[input.getTickCounter() % 100] = System.nanoTime() - i; // CatServer - check world in tickTime list, prevent plugin unload world from causing NPE
+                if (input.worldTickTimes.containsKey(id)) input.worldTickTimes.get(id)[input.tickCounter % 100] = System.nanoTime() - i; // CatServer - check world in tickTime list, prevent plugin unload world from causing NPE
             },MinecraftServer.GLOBAL_EXECUTOR);
         }finally {
             finished = true;
@@ -44,31 +44,21 @@ public class ParallelWorldTickTask implements TickTask<MinecraftServer> {
     }
 
     public SinglePartProfiler getProfiler(){
-        throw new UnsupportedOperationException();
+        return this.profiler;
     }
 
     @Override
     public boolean finished() {
-        throw new UnsupportedOperationException();
+        return this.finished;
     }
 
     @Override
     public boolean terminate() {
-        throw new UnsupportedOperationException();
+        return false;
     }
 
     @Override
     public void forceTerminate() {
-        throw new UnsupportedOperationException();
-    }
 
-    @Override
-    public void awaitFinish(long nanosTimeOut) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void awaitFinish() {
-        throw new UnsupportedOperationException();
     }
 }

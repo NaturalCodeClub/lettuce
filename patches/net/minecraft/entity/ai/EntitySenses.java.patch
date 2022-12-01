@@ -1,0 +1,12 @@
+--- ../src-base/minecraft/net/minecraft/entity/ai/EntitySenses.java
++++ ../src-work/minecraft/net/minecraft/entity/ai/EntitySenses.java
+@@ -34,9 +34,7 @@
+         }
+         else
+         {
+-            this.entity.world.profiler.startSection("canSee");
+             boolean flag = this.entity.canEntityBeSeen(entityIn);
+-            this.entity.world.profiler.endSection();
+ 
+             if (flag)
+             {

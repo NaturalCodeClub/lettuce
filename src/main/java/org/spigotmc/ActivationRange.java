@@ -33,7 +33,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
-import org.bukkit.craftbukkit.SpigotTimings;
 
 public class ActivationRange
 {
@@ -113,7 +112,6 @@ public class ActivationRange
      */
     public static void activateEntities(World world)
     {
-        SpigotTimings.entityActivationCheckTimer.startTiming();
         final int miscActivationRange = world.spigotConfig.miscActivationRange;
         final int animalActivationRange = world.spigotConfig.animalActivationRange;
         final int monsterActivationRange = world.spigotConfig.monsterActivationRange;
@@ -147,7 +145,6 @@ public class ActivationRange
                 }
             }
         }
-        SpigotTimings.entityActivationCheckTimer.stopTiming();
     }
 
     /**
@@ -264,11 +261,8 @@ public class ActivationRange
     public static boolean checkIfActive(Entity entity)
     {
         if (!catserver.server.CatServer.getConfig().enableSkipEntityTick) return true; // CatServer
-        SpigotTimings.checkIfActiveTimer.startTiming();
-        // Never safe to skip fireworks or entities not yet added to chunk
-        // PAIL: inChunk
+
         if ( !entity.addedToChunk || entity instanceof EntityFireworkRocket ) {
-            SpigotTimings.checkIfActiveTimer.stopTiming();
             return true;
         }
 
@@ -300,7 +294,6 @@ public class ActivationRange
         {
             isActive = false;
         }
-        SpigotTimings.checkIfActiveTimer.stopTiming();
         return isActive;
     }
 }

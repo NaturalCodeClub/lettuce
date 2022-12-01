@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.logging.Level;
 
 import gg.m2ke4u.skylight.commands.StatsCommand;
+import gg.m2ke4u.skylight.config.WorkerConfig;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.RangedAttribute;
@@ -238,6 +239,7 @@ public class SpigotConfig
 
     public static boolean disableStatSaving;
     public static TObjectIntHashMap<String> forcedStats = new TObjectIntHashMap<String>();
+
     private static void stats()
     {
         disableStatSaving = getBoolean( "stats.disable-saving", false );
@@ -264,7 +266,7 @@ public class SpigotConfig
     private static void tpsCommand()
     {
         commands.put( "tps", new TicksPerSecondCommand( "tps" ) );
-        commands.put( "sksstatus", new StatsCommand() );
+        commands.put("sksstatus",new StatsCommand());
     }
 
     public static int playerSample;

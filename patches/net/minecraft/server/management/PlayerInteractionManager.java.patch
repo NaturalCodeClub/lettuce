@@ -29,7 +29,7 @@
  import net.minecraft.tileentity.TileEntity;
  import net.minecraft.tileentity.TileEntityChest;
  import net.minecraft.util.ActionResult;
-@@ -25,7 +34,14 @@
+@@ -25,12 +34,19 @@
  import net.minecraft.world.ILockableContainer;
  import net.minecraft.world.World;
  import net.minecraft.world.WorldServer;
@@ -44,6 +44,12 @@
  public class PlayerInteractionManager
  {
      public World world;
+     public EntityPlayerMP player;
+-    private GameType gameType = GameType.NOT_SET;
++    private volatile GameType gameType = GameType.NOT_SET;
+     private boolean isDestroyingBlock;
+     private int initialDamage;
+     private BlockPos destroyPos = BlockPos.ORIGIN;
 @@ -50,7 +66,7 @@
          this.gameType = type;
          type.configurePlayerCapabilities(this.player.capabilities);

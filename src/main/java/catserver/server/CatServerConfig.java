@@ -28,10 +28,8 @@ public class CatServerConfig {
 
     public boolean fixPlayBossSoundToOtherWorld = true;
     public boolean fixLessCrystalRespawnDragon = false;
-    public boolean preventPistonPushTileEntity = true;
     public boolean preventPistonPushRail = false;
     public boolean preventPistonPushSlimeBlock = false;
-    public boolean limitFastClickGUI = false;
 
     public boolean enableDynmapCompatible = true;
     public boolean enableCoreProtectModBlockCompatible = true;
@@ -39,14 +37,9 @@ public class CatServerConfig {
     public boolean enableMythicMobsPatcherCompatible = true;
     public boolean enableWorldEditCompatible = true;
     public boolean enableCitizensCompatible = true;
-    public boolean enableSuperiorSkyblock2Compatible = true;
     public List<String> disableHopperMoveEventWorlds = Lists.<String>newArrayList();
-    public boolean defaultInstallPluginSpark = true;
 
     public boolean waitForgeServerChatEvent = false;
-
-    public boolean securityOpManager = false;
-    public boolean securityGameModeManager = false;
 
     public boolean disableUpdateGameProfile = false;
     public boolean disableFMLHandshake = false;
@@ -78,10 +71,8 @@ public class CatServerConfig {
         // vanilla
         fixPlayBossSoundToOtherWorld = getOrWriteBooleanConfig("vanilla.fixPlayBossSoundToOtherWorld", fixPlayBossSoundToOtherWorld);
         fixLessCrystalRespawnDragon = getOrWriteBooleanConfig("vanilla.fixLessCrystalRespawnDragon", fixLessCrystalRespawnDragon);
-        preventPistonPushTileEntity = getOrWriteBooleanConfig("vanilla.preventPistonPushTileEntity", preventPistonPushTileEntity);
         preventPistonPushRail = getOrWriteBooleanConfig("vanilla.preventPistonPushRail", preventPistonPushRail);
         preventPistonPushSlimeBlock = getOrWriteBooleanConfig("vanilla.preventPistonPushSlimeBlock", preventPistonPushRail);
-        limitFastClickGUI = getOrWriteBooleanConfig("vanilla.limitFastClickGUI", limitFastClickGUI);
         // plugin
         enableDynmapCompatible = getOrWriteBooleanConfig("plugin.patcher.enableDynmapCompatible", enableDynmapCompatible);
         enableCoreProtectModBlockCompatible = getOrWriteBooleanConfig("plugin.patcher.enableCoreProtectModBlockCompatible", enableCoreProtectModBlockCompatible);
@@ -89,14 +80,9 @@ public class CatServerConfig {
         enableMythicMobsPatcherCompatible = getOrWriteBooleanConfig("plugin.patcher.enableMythicMobsPatcherCompatible", enableMythicMobsPatcherCompatible);
         enableWorldEditCompatible = getOrWriteBooleanConfig("plugin.patcher.enableWorldEditCompatible", enableWorldEditCompatible);
         enableCitizensCompatible = getOrWriteBooleanConfig("plugin.patcher.enableCitizensCompatible", enableCitizensCompatible);
-        enableSuperiorSkyblock2Compatible = getOrWriteBooleanConfig("plugin.patcher.enableSuperiorSkyblock2Compatible", enableSuperiorSkyblock2Compatible);
         disableHopperMoveEventWorlds = getOrWriteStringListConfig("plugin.disableHopperMoveEventWorlds", disableHopperMoveEventWorlds);
-        defaultInstallPluginSpark = getOrWriteBooleanConfig("plugin.defaultInstall.spark", defaultInstallPluginSpark);
         // async
         waitForgeServerChatEvent = getOrWriteBooleanConfig("async.waitForgeServerChatEvent", waitForgeServerChatEvent);
-        // security
-        securityOpManager = getOrWriteBooleanConfig("security.opManager", securityOpManager);
-        securityGameModeManager = getOrWriteBooleanConfig("security.gameModeManager", securityGameModeManager);
         // general
         disableUpdateGameProfile = getOrWriteBooleanConfig("disableUpdateGameProfile", disableUpdateGameProfile);
         disableFMLHandshake = getOrWriteBooleanConfig("disableFMLHandshake", disableFMLHandshake);

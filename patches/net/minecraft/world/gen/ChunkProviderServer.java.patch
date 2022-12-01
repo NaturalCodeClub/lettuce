@@ -1,15 +1,33 @@
 --- ../src-base/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
 +++ ../src-work/minecraft/net/minecraft/world/gen/ChunkProviderServer.java
-@@ -11,6 +11,8 @@
+@@ -2,18 +2,24 @@
+ 
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Sets;
++import gg.m2ke4u.lutils.threading.traversing.CollectionConcurrentUtils;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+-import it.unimi.dsi.fastutil.objects.ObjectIterator;
++
+ import java.io.IOException;
+ import java.util.Collection;
+ import java.util.Iterator;
  import java.util.List;
  import java.util.Set;
++import java.util.concurrent.ForkJoinPool;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicInteger;
  import javax.annotation.Nullable;
 +
-+import net.himeki.mcmtfabric.parallelised.fastutil.Long2ObjectOpenConcurrentHashMap;
++import net.himeki.mcmtfabric.parallelised.fastutil.Long2ObjectConcurrentHashMap;
  import net.minecraft.crash.CrashReport;
  import net.minecraft.crash.CrashReportCategory;
  import net.minecraft.entity.EnumCreatureType;
-@@ -26,15 +28,18 @@
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.util.ReportedException;
+ import net.minecraft.util.math.BlockPos;
+ import net.minecraft.util.math.ChunkPos;
+@@ -26,15 +32,18 @@
  import net.minecraft.world.chunk.storage.IChunkLoader;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
@@ -24,12 +42,25 @@
      public final IChunkGenerator chunkGenerator;
      public final IChunkLoader chunkLoader;
 -    public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenHashMap<Chunk>(8192);
-+    public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectOpenConcurrentHashMap<>(8192);
++    public final Long2ObjectMap<Chunk> id2ChunkMap = new Long2ObjectConcurrentHashMap<>(8192);
      public final WorldServer world;
 +    private final Set<Long> loadingChunks = com.google.common.collect.Sets.newConcurrentHashSet();
  
      public ChunkProviderServer(WorldServer worldObjIn, IChunkLoader chunkLoaderIn, IChunkGenerator chunkGeneratorIn)
      {
+@@ -59,11 +68,7 @@
+ 
+     public void queueUnloadAll()
+     {
+-        ObjectIterator objectiterator = this.id2ChunkMap.values().iterator();
+-
+-        while (objectiterator.hasNext())
+-        {
+-            Chunk chunk = (Chunk)objectiterator.next();
++        for (Chunk chunk : this.id2ChunkMap.values()) {
+             this.queueUnload(chunk);
+         }
+     }
 @@ -82,23 +87,56 @@
          return chunk;
      }
@@ -92,25 +123,62 @@
          return chunk;
      }
  
-@@ -108,6 +146,7 @@
- 
-         if (chunk == null)
-         {
-+            world.timings.syncChunkLoadTimer.startTiming(); // Spigot
-             long i = ChunkPos.asLong(x, z);
- 
-             try
-@@ -126,7 +165,8 @@
+@@ -126,7 +164,7 @@
  
              this.id2ChunkMap.put(i, chunk);
              chunk.onLoad();
 -            chunk.populate(this, this.chunkGenerator);
 +            chunk.populateCB(this, this.chunkGenerator, true);
-+            world.timings.syncChunkLoadTimer.stopTiming(); // Spigot
          }
  
          return chunk;
-@@ -218,36 +258,91 @@
+@@ -183,34 +221,24 @@
+         }
+     }
+ 
+-    public boolean saveChunks(boolean all)
+-    {
+-        int i = 0;
++    public boolean saveChunks(boolean all) {
++        AtomicInteger i = new AtomicInteger();
+         List<Chunk> list = Lists.newArrayList(this.id2ChunkMap.values());
+-
+-        for (int j = 0; j < list.size(); ++j)
+-        {
+-            Chunk chunk = list.get(j);
+-
+-            if (all)
+-            {
++        final AtomicBoolean shouldContinue = new AtomicBoolean(true);
++        CollectionConcurrentUtils.traverseConcurrent(list.stream(), chunk -> {
++            if (all && shouldContinue.get()) {
+                 this.saveChunkExtraData(chunk);
+             }
+-
+-            if (chunk.needsSaving(all))
+-            {
++            if (chunk.needsSaving(all) && shouldContinue.get()) {
+                 this.saveChunkData(chunk);
+                 chunk.setModified(false);
+-                ++i;
+-
+-                if (i == 24 && !all)
+-                {
+-                    return false;
++                i.incrementAndGet();
++                if (i.get() == 24 && !all) {
++                    shouldContinue.set(false);
+                 }
+             }
+-        }
+-
+-        return true;
++        }, MinecraftServer.GLOBAL_EXECUTOR);
++        return shouldContinue.get();
+     }
+ 
+     public void flushToDisk()
+@@ -218,36 +246,85 @@
          this.chunkLoader.flush();
      }
  
@@ -122,44 +190,45 @@
          {
              if (!this.droppedChunksSet.isEmpty())
              {
+-                Iterator<Long> iterator = this.droppedChunksSet.iterator();
+-
+-                for (int i = 0; i < 100 && iterator.hasNext(); iterator.remove())
 +                for (ChunkPos forced : this.world.getPersistentChunks().keySet())
-+                {
+                 {
+-                    Long olong = iterator.next();
+-                    Chunk chunk = (Chunk)this.id2ChunkMap.get(olong);
 +                    this.droppedChunksSet.remove(ChunkPos.asLong(forced.x, forced.z));
 +                }
-+
+ 
+-                    if (chunk != null && chunk.unloadQueued)
+-                    {
+-                        chunk.onUnload();
+-                        this.saveChunkData(chunk);
+-                        this.saveChunkExtraData(chunk);
+-                        this.id2ChunkMap.remove(olong);
+-                        ++i;
 +                // Spigot start
 +                org.spigotmc.SlackActivityAccountant activityAccountant = net.minecraft.server.MinecraftServer.getServerInst().slackActivityAccountant;
 +                activityAccountant.startActivity(0.5);
 +                int targetSize = (int) (this.droppedChunksSet.size() * UNLOAD_QUEUE_RESIZE_FACTOR);
 +                // Spigot end
 +
-                 Iterator<Long> iterator = this.droppedChunksSet.iterator();
- 
--                for (int i = 0; i < 100 && iterator.hasNext(); iterator.remove())
-+                while (iterator.hasNext()) // Spigot
-                 {
-                     Long olong = iterator.next();
-+                    iterator.remove(); // Spigot
-                     Chunk chunk = (Chunk)this.id2ChunkMap.get(olong);
- 
-                     if (chunk != null && chunk.unloadQueued)
-                     {
--                        chunk.onUnload();
--                        this.saveChunkData(chunk);
--                        this.saveChunkExtraData(chunk);
--                        this.id2ChunkMap.remove(olong);
--                        ++i;
-+                        if (!unloadChunk(chunk, true)) {
-+                            continue;
++                final AtomicBoolean shouldContinue = new AtomicBoolean(true);
++                CollectionConcurrentUtils.traverseConcurrent(this.droppedChunksSet.stream(),olong->{
++                    if (shouldContinue.get()){
++                        this.droppedChunksSet.remove(olong);
++                        Chunk chunk = this.id2ChunkMap.get(olong);
++                        if (chunk != null && chunk.unloadQueued) {
++                            if (!unloadChunk(chunk, true)) {
++                                return;
++                            }
++                            if (this.droppedChunksSet.size() <= targetSize && activityAccountant.activityTimeIsExhausted()) {
++                                shouldContinue.set(false);
++                            }
 +                        }
-+
-+                        // Spigot start
-+                        if (this.droppedChunksSet.size() <= targetSize && activityAccountant.activityTimeIsExhausted()) {
-+                            break;
-+                        }
-+                        // Spigot end
                      }
-                 }
+-                }
++                },MinecraftServer.GLOBAL_EXECUTOR);
 +
 +                activityAccountant.endActivity(); // Spigot
              }

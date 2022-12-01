@@ -1,6 +1,6 @@
 --- ../src-base/minecraft/net/minecraft/pathfinding/PathHeap.java
 +++ ../src-work/minecraft/net/minecraft/pathfinding/PathHeap.java
-@@ -1,102 +1,90 @@
+@@ -1,102 +1,89 @@
  package net.minecraft.pathfinding;
  
 -public class PathHeap
@@ -8,8 +8,7 @@
 +public class PathHeap {
      private PathPoint[] pathPoints = new PathPoint[128];
 -    private int count;
-+    private volatile int count;
- 
+-
 -    public PathPoint addPoint(PathPoint point)
 -    {
 -        if (point.index >= 0)
@@ -20,6 +19,7 @@
 -        {
 -            if (this.count == this.pathPoints.length)
 -            {
++    private volatile int count;
 +    public PathPoint addPoint(PathPoint point) {
 +        if (point.index.get() < 0) {
 +            if (this.count == this.pathPoints.length) {
@@ -136,7 +136,7 @@
                  break;
              }
  
-@@ -105,47 +93,38 @@
+@@ -105,47 +92,38 @@
              PathPoint pathpoint2;
              float f2;
  

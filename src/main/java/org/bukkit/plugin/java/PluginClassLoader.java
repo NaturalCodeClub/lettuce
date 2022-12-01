@@ -37,7 +37,7 @@ import net.md_5.specialsource.repo.RuntimeRepo;
 /**
  * A ClassLoader for plugins, to allow shared classes across multiple plugins
  */
-public /* CatServer - protected -> public */ final class PluginClassLoader extends URLClassLoader {
+final class PluginClassLoader extends URLClassLoader {
     private final JavaPluginLoader loader;
     private final Map<String, Class<?>> classes = new HashMap<String, Class<?>>();
     private final PluginDescriptionFile description;
@@ -275,10 +275,5 @@ public /* CatServer - protected -> public */ final class PluginClassLoader exten
                 }
             }
         }
-    }
-
-    // CatServer
-    public PluginDescriptionFile getDescription() {
-        return description;
     }
 }

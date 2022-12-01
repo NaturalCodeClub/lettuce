@@ -8,12 +8,11 @@
  import net.minecraft.block.Block;
  import net.minecraft.block.BlockJukebox;
  import net.minecraft.block.state.IBlockState;
-@@ -20,16 +21,23 @@
+@@ -20,16 +21,21 @@
  import net.minecraftforge.fml.relauncher.SideOnly;
  import org.apache.logging.log4j.LogManager;
  import org.apache.logging.log4j.Logger;
 +import org.bukkit.inventory.InventoryHolder;
-+import org.spigotmc.CustomTimingsHandler;
  
 -public abstract class TileEntity
 +import catserver.server.inventory.CatInventoryUtils;
@@ -29,12 +28,11 @@
      protected boolean tileEntityInvalid;
      private int blockMetadata = -1;
      protected Block blockType;
-+    public CustomTimingsHandler tickTimer = org.bukkit.craftbukkit.SpigotTimings.getTileEntityTimings(this); // Spigot
 +    public boolean skipTick = false;
  
      public static void register(String id, Class <? extends TileEntity > clazz)
      {
-@@ -60,6 +68,8 @@
+@@ -60,6 +66,8 @@
      public void readFromNBT(NBTTagCompound compound)
      {
          this.pos = new BlockPos(compound.getInteger("x"), compound.getInteger("y"), compound.getInteger("z"));
@@ -43,7 +41,7 @@
      }
  
      public NBTTagCompound writeToNBT(NBTTagCompound compound)
-@@ -81,6 +91,8 @@
+@@ -81,6 +89,8 @@
              compound.setInteger("x", this.pos.getX());
              compound.setInteger("y", this.pos.getY());
              compound.setInteger("z", this.pos.getZ());
@@ -52,7 +50,7 @@
              return compound;
          }
      }
-@@ -90,10 +102,11 @@
+@@ -90,10 +100,11 @@
      {
          TileEntity tileentity = null;
          String s = compound.getString("id");
@@ -65,7 +63,7 @@
  
              if (oclass != null)
              {
-@@ -103,6 +116,8 @@
+@@ -103,6 +114,8 @@
          catch (Throwable throwable1)
          {
              LOGGER.error("Failed to create block entity {}", s, throwable1);
@@ -74,7 +72,7 @@
          }
  
          if (tileentity != null)
-@@ -115,6 +130,8 @@
+@@ -115,6 +128,8 @@
              catch (Throwable throwable)
              {
                  LOGGER.error("Failed to load data for block entity {}", s, throwable);
@@ -83,7 +81,7 @@
                  tileentity = null;
              }
          }
-@@ -156,7 +173,6 @@
+@@ -156,7 +171,6 @@
          }
      }
  
@@ -91,7 +89,7 @@
      public double getDistanceSq(double x, double y, double z)
      {
          double d0 = (double)this.pos.getX() + 0.5D - x;
-@@ -244,7 +260,7 @@
+@@ -244,7 +258,7 @@
  
                      try
                      {
@@ -100,7 +98,7 @@
                      }
                      catch (Throwable var3)
                      {
-@@ -297,6 +313,204 @@
+@@ -297,6 +311,204 @@
      {
      }
  
@@ -305,7 +303,7 @@
      static
      {
          register("furnace", TileEntityFurnace.class);
-@@ -325,4 +539,9 @@
+@@ -325,4 +537,9 @@
          register("shulker_box", TileEntityShulkerBox.class);
          register("bed", TileEntityBed.class);
      }

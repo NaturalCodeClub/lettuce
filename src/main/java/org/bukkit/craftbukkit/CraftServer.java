@@ -184,7 +184,7 @@ import catserver.server.command.CraftSimpleCommandMap;
 import catserver.server.remapper.ReflectionTransformer;
 
 public final class CraftServer implements Server {
-    private final String serverName = "Lettuce";
+    private final String serverName = "SkyLightRebooted";
     private final String serverVersion;
     private final String bukkitVersion = Versioning.getBukkitVersion();
     private final Logger logger = Logger.getLogger("Minecraft");
@@ -729,12 +729,7 @@ public final class CraftServer implements Server {
 
     @Override
     public void reload() {
-        if (true) return; // CatServer - Disable reload
-    }
-
-    // CatServer - Move from reload method
-    @Deprecated
-    public void reloadConfirm() {
+        if (true) return; // CatServer - disable reload
         reloadCount++;
         configuration = YamlConfiguration.loadConfiguration(getConfigFile());
         commandsConfiguration = YamlConfiguration.loadConfiguration(getCommandsConfigFile());
@@ -828,7 +823,6 @@ public final class CraftServer implements Server {
         enablePlugins(PluginLoadOrder.POSTWORLD);
     }
 
-    // CatServer start
     public void reloadConfig() {
         configuration = YamlConfiguration.loadConfiguration(getConfigFile());
         commandsConfiguration = YamlConfiguration.loadConfiguration(getCommandsConfigFile());
@@ -887,7 +881,6 @@ public final class CraftServer implements Server {
 
         overrideAllCommandBlockCommands = commandsConfiguration.getStringList("command-block-overrides").contains("*");
     }
-    // CatServer end
 
     @Override
     public void reloadData() {

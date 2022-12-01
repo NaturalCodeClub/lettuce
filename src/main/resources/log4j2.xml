@@ -3,7 +3,7 @@
     <Appenders>
         <TerminalConsole name="Console">
             <PatternLayout>
-                <LoggerNamePatternSelector defaultPattern="%highlightError{[%d{HH:mm:ss}] [%t/%level]: %minecraftFormatting{%msg}%n%xEx}"/>
+                <LoggerNamePatternSelector defaultPattern="[%d{HH:mm:ss} %style{%highlight{%level}{FATAL=red dark, ERROR=red, WARN=yellow bright, INFO=cyan bright, DEBUG=green, TRACE=white}}][%t]: %minecraftFormatting{%msg}%n%xEx}"/>
             </PatternLayout>
         </TerminalConsole>
         <RollingRandomAccessFile name="File" fileName="logs/latest.log" filePattern="logs/%d{yyyy-MM-dd}-%i.log.gz">

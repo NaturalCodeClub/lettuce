@@ -1,9 +1,12 @@
 package org.spigotmc;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 public class TickLimiter {
 
     private final int maxTime;
-    private long startTime;
+    private volatile long startTime;
+    private final AtomicBoolean triggered = new AtomicBoolean(false);
 
     public TickLimiter(int maxtime) {
         this.maxTime = maxtime;
@@ -15,6 +18,12 @@ public class TickLimiter {
 
     public boolean shouldContinue() {
         long remaining = System.currentTimeMillis() - startTime;
-        return remaining < maxTime;
+        boolean timeNotOuted = remaining < maxTime;
+        this.triggered.set(!timeNotOuted);
+        return timeNotOuted;
+    }
+
+    public boolean triggered(){
+        return this.triggered.get();
     }
 }

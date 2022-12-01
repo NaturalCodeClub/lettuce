@@ -1,7 +1,5 @@
 package org.spigotmc;
 
-import gg.m2ke4u.skylight.WorkerWrapper;
-import gg.m2ke4u.skylight.config.WorkerConfig;
 import net.minecraft.server.MinecraftServer;
 
 public class AsyncCatcher
@@ -11,9 +9,9 @@ public class AsyncCatcher
 
     public static void catchOp(String reason)
     {
-        if (!WorkerConfig.ASYNC_CATCHER_DISABLED && enabled && Thread.currentThread() != MinecraftServer.getServerInst().primaryThread && !WorkerWrapper.isWorker())
+        if ( enabled && Thread.currentThread() != MinecraftServer.getServerInst().primaryThread && !net.minecraft.server.MinecraftServer.isCurrentWorkerThread())
         {
-            throw new IllegalStateException( "Asynchronous " + reason + "!" );
+           throw new IllegalStateException( "Asynchronous " + reason + "!" );
         }
     }
 }

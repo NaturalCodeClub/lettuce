@@ -6,7 +6,7 @@ import net.minecraft.launchwrapper.IClassTransformer;
 import java.util.Map;
 
 public class TransformerProxyRules {
-    private static final Map<String, Class<?>> transformerProxyRules = Maps.newHashMap();
+    private static Map<String, Class<?>> transformerProxyRules = Maps.newHashMap();
 
     static {
         transformerProxyRules.put("com.teamwizardry.librarianlib.asm.LibLibTransformer", LibrarianLibTransformerProxy.class);

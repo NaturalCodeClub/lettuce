@@ -1,35 +1,28 @@
 --- ../src-base/minecraft/net/minecraft/village/Village.java
 +++ ../src-work/minecraft/net/minecraft/village/Village.java
-@@ -8,6 +8,8 @@
- import java.util.Map;
- import java.util.UUID;
- import javax.annotation.Nullable;
-+
-+import net.himeki.mcmtfabric.parallelised.ConcurrentCollections;
- import net.minecraft.block.Block;
- import net.minecraft.block.BlockDoor;
- import net.minecraft.block.material.Material;
-@@ -26,10 +28,10 @@
+@@ -25,11 +25,12 @@
+ import net.minecraft.util.math.MathHelper;
  import net.minecraft.util.math.Vec3d;
  import net.minecraft.world.World;
++import org.threadly.concurrent.collections.ConcurrentArrayList;
  
 -public class Village
 +public class Village implements net.minecraftforge.common.capabilities.ICapabilitySerializable<NBTTagCompound>
  {
      private World world;
 -    private final List<VillageDoorInfo> villageDoorInfoList = Lists.<VillageDoorInfo>newArrayList();
-+    private final List<VillageDoorInfo> villageDoorInfoList = ConcurrentCollections.newArrayList();
++    private final List<VillageDoorInfo> villageDoorInfoList = new ConcurrentArrayList<>();
      private BlockPos centerHelper = BlockPos.ORIGIN;
      private BlockPos center = BlockPos.ORIGIN;
      private int villageRadius;
-@@ -37,17 +39,19 @@
+@@ -37,17 +38,19 @@
      private int tickCounter;
      private int numVillagers;
      private int noBreedTicks;
 -    private final Map<String, Integer> playerReputation = Maps.<String, Integer>newHashMap();
 -    private final List<Village.VillageAggressor> villageAgressors = Lists.<Village.VillageAggressor>newArrayList();
-+    private final Map<UUID, Integer> playerReputation = Maps.<UUID, Integer>newConcurrentMap();
-+    private final List<VillageAggressor> villageAgressors = ConcurrentCollections.newArrayList();
++    private final Map<UUID, Integer> playerReputation = Maps.<UUID, Integer>newHashMap();
++    private final List<VillageAggressor> villageAgressors = Lists.<VillageAggressor>newArrayList();
      private int numIronGolems;
  
      public Village()
@@ -44,7 +37,7 @@
      }
  
      public void setWorld(World worldIn)
-@@ -81,7 +85,7 @@
+@@ -81,7 +84,7 @@
              {
                  EntityIronGolem entityirongolem = new EntityIronGolem(this.world);
                  entityirongolem.setPosition(vec3d.x, vec3d.y, vec3d.z);
@@ -53,7 +46,7 @@
                  ++this.numIronGolems;
              }
          }
-@@ -272,7 +276,7 @@
+@@ -272,7 +275,7 @@
  
      public void addOrRenewAgressor(EntityLivingBase entitylivingbaseIn)
      {
@@ -62,7 +55,7 @@
          {
              if (village$villageaggressor.agressor == entitylivingbaseIn)
              {
-@@ -281,18 +285,18 @@
+@@ -281,18 +284,18 @@
              }
          }
  
@@ -84,7 +77,7 @@
              double d1 = village$villageaggressor1.agressor.getDistanceSq(entitylivingbaseIn);
  
              if (d1 <= d0)
-@@ -310,11 +314,11 @@
+@@ -310,11 +313,11 @@
          double d0 = Double.MAX_VALUE;
          EntityPlayer entityplayer = null;
  
@@ -98,26 +91,21 @@
  
                  if (entityplayer1 != null)
                  {
-@@ -334,17 +338,8 @@
+@@ -334,11 +337,11 @@
  
      private void removeDeadAndOldAgressors()
      {
 -        Iterator<Village.VillageAggressor> iterator = this.villageAgressors.iterator();
++        Iterator<VillageAggressor> iterator = this.villageAgressors.iterator();
  
--        while (iterator.hasNext())
--        {
+         while (iterator.hasNext())
+         {
 -            Village.VillageAggressor village$villageaggressor = iterator.next();
--
--            if (!village$villageaggressor.agressor.isEntityAlive() || Math.abs(this.tickCounter - village$villageaggressor.agressionTime) > 300)
--            {
--                iterator.remove();
--            }
--        }
-+        this.villageAgressors.removeIf(village$villageaggressor -> !village$villageaggressor.agressor.isEntityAlive() || Math.abs(this.tickCounter - village$villageaggressor.agressionTime) > 300);
-     }
++            VillageAggressor village$villageaggressor = iterator.next();
  
-     private void removeDeadAndOutOfRangeDoors()
-@@ -362,6 +357,7 @@
+             if (!village$villageaggressor.agressor.isEntityAlive() || Math.abs(this.tickCounter - village$villageaggressor.agressionTime) > 300)
+             {
+@@ -362,6 +365,7 @@
                  villagedoorinfo.resetDoorOpeningRestrictionCounter();
              }
  
@@ -125,7 +113,7 @@
              if (!this.isWoodDoor(villagedoorinfo.getDoorBlockPos()) || Math.abs(this.tickCounter - villagedoorinfo.getLastActivityTimestamp()) > 1200)
              {
                  this.centerHelper = this.centerHelper.subtract(villagedoorinfo.getDoorBlockPos());
-@@ -415,25 +411,51 @@
+@@ -415,25 +419,51 @@
          }
      }
  
@@ -178,7 +166,7 @@
      public void readVillageDataFromNBT(NBTTagCompound compound)
      {
          this.numVillagers = compound.getInteger("PopSize");
-@@ -459,21 +481,17 @@
+@@ -459,21 +489,17 @@
          {
              NBTTagCompound nbttagcompound1 = nbttaglist1.getCompoundTagAt(j);
  
@@ -205,7 +193,7 @@
      }
  
      public void writeVillageDataToNBT(NBTTagCompound compound)
-@@ -507,18 +525,14 @@
+@@ -507,18 +533,14 @@
          compound.setTag("Doors", nbttaglist);
          NBTTagList nbttaglist1 = new NBTTagList();
  
@@ -226,7 +214,7 @@
                      nbttagcompound1.setInteger("S", ((Integer)this.playerReputation.get(s)).intValue());
                      nbttaglist1.appendTag(nbttagcompound1);
                  }
-@@ -530,6 +544,7 @@
+@@ -530,6 +552,7 @@
          }
  
          compound.setTag("Players", nbttaglist1);
@@ -234,7 +222,7 @@
      }
  
      public void endMatingSeason()
-@@ -544,7 +559,7 @@
+@@ -544,7 +567,7 @@
  
      public void setDefaultPlayerReputation(int defaultReputation)
      {
@@ -243,7 +231,7 @@
          {
              this.modifyPlayerReputation(s, defaultReputation);
          }
-@@ -561,4 +576,31 @@
+@@ -561,4 +584,31 @@
              this.agressionTime = agressionTimeIn;
          }
      }

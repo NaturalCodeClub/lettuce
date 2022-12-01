@@ -18,10 +18,13 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import catserver.server.AsyncCatcher;
 import catserver.server.CatServer;
 import catserver.server.entity.CraftFakePlayer;
-import gg.m2ke4u.skylight.WorkerWrapper;
+import gg.m2ke4u.skylight.config.GlobalConfig;
 import org.apache.commons.lang.Validate;
+import org.apache.logging.log4j.LogManager;
+import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommandYamlParser;
@@ -467,7 +470,7 @@ public final class SimplePluginManager implements PluginManager {
         }
     }
 
-    private final Object callEventLock = new Object();
+    private final Object lock = new Object();
 
     /**
      * Calls an event with the given details.
@@ -477,19 +480,18 @@ public final class SimplePluginManager implements PluginManager {
      * @param event Event details
      */
     public void callEvent(Event event) {
-        if (CatServer.getConfig().fakePlayerEventPass && event instanceof PlayerEvent && ((PlayerEvent) event).getPlayer() instanceof CraftFakePlayer) return; // CatServer
-        if (event.isAsynchronous() || (!server.isPrimaryThread() && !WorkerWrapper.isWorker())) { // CatServer
-            if (Thread.holdsLock(this.callEventLock)) {
-                throw new IllegalStateException(event.getEventName() + " cannot be triggered asynchronously from inside synchronized code.");
-            }
-            if (server.isPrimaryThread() || WorkerWrapper.isWorker()) {
-                throw new IllegalStateException(event.getEventName() + " cannot be triggered asynchronously from primary server thread.");
-            }
-            fireEvent(event);
-        } else {
-            synchronized (this.callEventLock) {
+        if (Bukkit.isPrimaryThread() && net.minecraft.server.MinecraftServer.isCurrentWorkerThread() && event.isAsynchronous()){
+            LogManager.getLogger().error("Sync call async event!");
+        }
+        if (CatServer.getConfig().fakePlayerEventPass && event instanceof PlayerEvent && ((PlayerEvent) event).getPlayer() instanceof CraftFakePlayer)
+            return; // CatServer
+        if (!event.isAsynchronous() && !net.minecraft.server.MinecraftServer.isCurrentWorkerThread() && GlobalConfig.BUKKIT_EVENT_RETURN_TO_MAIN){
+            AsyncCatcher.ensureExecuteOnPrimaryThreadAsync(()->{
                 fireEvent(event);
-            }
+            });
+        }
+        synchronized (lock){
+            fireEvent(event);
         }
     }
 

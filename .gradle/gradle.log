@@ -1,10 +1,19 @@
-javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake
-	at sun.security.ssl.SSLSocketImpl.handleEOF(SSLSocketImpl.java:1575)
-	at sun.security.ssl.SSLSocketImpl.decode(SSLSocketImpl.java:1405)
-	at sun.security.ssl.SSLSocketImpl.readHandshakeRecord(SSLSocketImpl.java:1305)
-	at sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:440)
-	at sun.net.www.protocol.https.HttpsClient.afterConnect(HttpsClient.java:559)
-	at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:197)
+java.net.UnknownHostException: launchermeta.mojang.com
+	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:184)
+	at java.net.PlainSocketImpl.connect(PlainSocketImpl.java:172)
+	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:392)
+	at java.net.Socket.connect(Socket.java:607)
+	at sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:293)
+	at sun.security.ssl.BaseSSLSocketImpl.connect(BaseSSLSocketImpl.java:173)
+	at sun.net.NetworkClient.doConnect(NetworkClient.java:180)
+	at sun.net.www.http.HttpClient.openServer(HttpClient.java:463)
+	at sun.net.www.http.HttpClient.openServer(HttpClient.java:558)
+	at sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:264)
+	at sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:367)
+	at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:203)
+	at sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1162)
+	at sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1056)
+	at sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:189)
 	at sun.net.www.protocol.https.HttpsURLConnectionImpl.connect(HttpsURLConnectionImpl.java:167)
 	at net.minecraftforge.gradle.common.BasePlugin.getWithEtag(BasePlugin.java:715)
 	at net.minecraftforge.gradle.common.BasePlugin.getWithEtag(BasePlugin.java:676)
@@ -138,9 +147,4 @@ javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake
 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
 	at org.gradle.internal.concurrent.ThreadFactoryImpl$ManagedThreadRunnable.run(ThreadFactoryImpl.java:55)
 	at java.lang.Thread.run(Thread.java:750)
-Caused by: java.io.EOFException: SSL peer shut down incorrectly
-	at sun.security.ssl.SSLSocketInputRecord.decode(SSLSocketInputRecord.java:167)
-	at sun.security.ssl.SSLTransport.decode(SSLTransport.java:109)
-	at sun.security.ssl.SSLSocketImpl.decode(SSLSocketImpl.java:1397)
-	... 137 more
 This mapping 'snapshot_nodoc_20171003' was designed for MC 1.12! Use at your own peril.

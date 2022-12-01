@@ -9,9 +9,10 @@ import org.bukkit.plugin.SimplePluginManager;
 
 public class SparkLoader {
     private static final boolean enableSpark = Boolean.parseBoolean(System.getProperty("catserver.spark.enable", "true"));
+    private static boolean sparkPluginEnabled = false;
 
-    private static boolean isDefaultInstallSpark() {
-        return enableSpark && CatServer.getConfig().defaultInstallPluginSpark;
+    public static boolean isEnableSpark() {
+        return enableSpark;
     }
 
     public static boolean isSparkPluginEnabled() {
@@ -20,23 +21,16 @@ public class SparkLoader {
     }
 
     public static void tryLoadSparkPlugin(SimplePluginManager pluginManager) {
-        if (!isDefaultInstallSpark() || pluginManager.getPlugin("spark") != null) return;
-
+        if (!isEnableSpark() || pluginManager.getPlugin("spark") != null) return;
         try {
-            File sparkPluginOriginFile = new File(LibrariesManager.librariesDir, LibrariesManager.sparkPluginFileName);
+            File sparkPluginOriginFile = new File("libraries", LibrariesManager.sparkPluginFileName);
             File sparkPluginFile = new File("plugins", sparkPluginOriginFile.getName());
-
             if (sparkPluginOriginFile.exists() && !sparkPluginFile.exists()) {
                 Files.copy(sparkPluginOriginFile.toPath(), sparkPluginFile.toPath());
             }
-
-            if (sparkPluginFile.exists()) {
-                Plugin sparkPlugin = pluginManager.loadPlugin(sparkPluginFile);
-                sparkPlugin.onLoad();
-                pluginManager.enablePlugin(sparkPlugin);
-            } else {
-                CatServer.log.warn("Missing " + sparkPluginOriginFile.getAbsolutePath());
-            }
+            Plugin sparkPlugin = pluginManager.loadPlugin(sparkPluginFile);
+            sparkPlugin.onLoad();
+            pluginManager.enablePlugin(sparkPlugin);
         } catch (Exception e) {
             new RuntimeException("Failed to load spark!", e).printStackTrace();
         }

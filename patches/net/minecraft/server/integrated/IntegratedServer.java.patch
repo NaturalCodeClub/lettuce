@@ -117,7 +117,7 @@
 -        super.stopServer();
 +        try {
 +            super.stopServer();
-+        } catch (MinecraftException e) {
++        } catch (Exception e) {
 +            e.printStackTrace();
 +        }
  

@@ -2,7 +2,6 @@ package net.himeki.mcmtfabric.parallelised;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.threadly.concurrent.collections.ConcurrentArrayList;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,10 +27,6 @@ public class ConcurrentCollections {
     public static <T> List<T> newLinkedList() {
         LOGGER.info("Concurrent \"linked\" list created");
         return new CopyOnWriteArrayList<T>();
-    }
-
-    public static <T> List<T> newArrayList(){
-        return new ConcurrentArrayList<>();
     }
 
     public static <T> Collector<T, ?, List<T>> toList() {

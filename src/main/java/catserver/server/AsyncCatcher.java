@@ -1,7 +1,5 @@
 package catserver.server;
 
-import gg.m2ke4u.skylight.WorkerWrapper;
-import gg.m2ke4u.skylight.config.WorkerConfig;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -14,11 +12,11 @@ import java.util.function.Supplier;
 
 public class AsyncCatcher {
     public static boolean isMainThread() {
-        return Thread.currentThread() == MinecraftServer.getServerInst().primaryThread || WorkerWrapper.isWorker();
+        return Thread.currentThread() == MinecraftServer.getServerInst().primaryThread || net.minecraft.server.MinecraftServer.isCurrentWorkerThread();
     }
 
     public static boolean checkAsync(String reason) {
-        if (org.spigotmc.AsyncCatcher.enabled && !isMainThread() && !WorkerConfig.ASYNC_CATCHER_DISABLED) {
+        if (org.spigotmc.AsyncCatcher.enabled && !isMainThread()) {
             if (!CatServer.getConfig().disableAsyncCatchWarn) {
                 CatServer.log.warn("A Mod/Plugin try to async " + reason + ", it will be executed safely on the main server thread until return!");
                 CatServer.log.warn("Please check the stacktrace in debug.log and report the author.");
@@ -31,6 +29,17 @@ public class AsyncCatcher {
 
     public static void ensureExecuteOnPrimaryThread(Runnable runnable) {
         ensureExecuteOnPrimaryThread(() -> { runnable.run(); return null; });
+    }
+
+    public static void ensureExecuteOnPrimaryThreadAsync(Runnable runnable) {
+        Waitable waitable = new Waitable() {
+            @Override
+            protected Object evaluate() {
+                runnable.run();
+                return null;
+            }
+        };
+        MinecraftServer.getServerInst().processQueue.add(waitable);
     }
 
     public static <T> T ensureExecuteOnPrimaryThread(Supplier<T> runnable) {

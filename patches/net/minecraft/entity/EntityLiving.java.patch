@@ -1,6 +1,15 @@
 --- ../src-base/minecraft/net/minecraft/entity/EntityLiving.java
 +++ ../src-work/minecraft/net/minecraft/entity/EntityLiving.java
-@@ -19,6 +19,7 @@
+@@ -5,6 +5,8 @@
+ import java.util.Map;
+ import java.util.Random;
+ import java.util.UUID;
++import java.util.concurrent.Executor;
++import java.util.concurrent.ForkJoinPool;
+ import javax.annotation.Nullable;
+ import net.minecraft.block.state.IBlockState;
+ import net.minecraft.enchantment.EnchantmentHelper;
+@@ -19,6 +21,7 @@
  import net.minecraft.entity.monster.EntityGhast;
  import net.minecraft.entity.monster.IMob;
  import net.minecraft.entity.player.EntityPlayer;
@@ -8,7 +17,7 @@
  import net.minecraft.init.Blocks;
  import net.minecraft.init.Items;
  import net.minecraft.inventory.EntityEquipmentSlot;
-@@ -57,6 +58,13 @@
+@@ -57,6 +60,13 @@
  import net.minecraft.world.storage.loot.LootTable;
  import net.minecraftforge.fml.relauncher.Side;
  import net.minecraftforge.fml.relauncher.SideOnly;
@@ -22,7 +31,7 @@
  
  public abstract class EntityLiving extends EntityLivingBase
  {
-@@ -68,16 +76,17 @@
+@@ -68,16 +78,17 @@
      protected EntityJumpHelper jumpHelper;
      private final EntityBodyHelper bodyHelper;
      protected PathNavigate navigator;
@@ -46,7 +55,18 @@
      private final Map<PathNodeType, Float> mapPathPriority = Maps.newEnumMap(PathNodeType.class);
      private ResourceLocation deathLootTable;
      private long deathLootTableSeed;
-@@ -169,9 +178,38 @@
+@@ -88,8 +99,8 @@
+     public EntityLiving(World worldIn)
+     {
+         super(worldIn);
+-        this.tasks = new EntityAITasks(worldIn != null && worldIn.profiler != null ? worldIn.profiler : null);
+-        this.targetTasks = new EntityAITasks(worldIn != null && worldIn.profiler != null ? worldIn.profiler : null);
++        this.tasks = new EntityAITasks();
++        this.targetTasks = new EntityAITasks();
+         this.lookHelper = new EntityLookHelper(this);
+         this.moveHelper = new EntityMoveHelper(this);
+         this.jumpHelper = new EntityJumpHelper(this);
+@@ -169,9 +180,38 @@
  
      public void setAttackTarget(@Nullable EntityLivingBase entitylivingbaseIn)
      {
@@ -86,6 +106,22 @@
      public boolean canAttackClass(Class <? extends EntityLivingBase > cls)
      {
          return cls != EntityGhast.class;
+@@ -205,7 +245,6 @@
+     public void onEntityUpdate()
+     {
+         super.onEntityUpdate();
+-        this.world.profiler.startSection("mobBaseTick");
+ 
+         if (this.isEntityAlive() && this.rand.nextInt(1000) < this.livingSoundTime++)
+         {
+@@ -213,7 +252,6 @@
+             this.playLivingSound();
+         }
+ 
+-        this.world.profiler.endSection();
+     }
+ 
+     protected void playHurtSound(DamageSource source)
 @@ -446,12 +484,21 @@
      {
          super.readEntityFromNBT(compound);
@@ -110,16 +146,27 @@
  
          if (compound.hasKey("ArmorItems", 9))
          {
-@@ -576,7 +623,7 @@
+@@ -574,9 +621,8 @@
+     public void onLivingUpdate()
+     {
          super.onLivingUpdate();
-         this.world.profiler.startSection("looting");
+-        this.world.profiler.startSection("looting");
  
 -        if (!this.world.isRemote && this.canPickUpLoot() && !this.dead && this.world.getGameRules().getBoolean("mobGriefing"))
 +        if (!this.world.isRemote && this.canPickUpLoot() && !this.dead && net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.world, this))
          {
              for (EntityItem entityitem : this.world.getEntitiesWithinAABB(EntityItem.class, this.getEntityBoundingBox().grow(1.0D, 0.0D, 1.0D)))
              {
-@@ -652,8 +699,14 @@
+@@ -586,8 +632,6 @@
+                 }
+             }
+         }
+-
+-        this.world.profiler.endSection();
+     }
+ 
+     protected void updateEquipmentIfNeeded(EntityItem itemEntity)
+@@ -652,8 +696,14 @@
              }
          }
  
@@ -136,7 +183,7 @@
              double d0;
  
              switch (entityequipmentslot.getSlotType())
-@@ -670,7 +723,9 @@
+@@ -670,7 +720,9 @@
  
              if (!itemstack1.isEmpty() && (double)(this.rand.nextFloat() - 0.1F) < d0)
              {
@@ -146,7 +193,7 @@
              }
  
              this.setItemStackToSlot(entityequipmentslot, itemstack);
-@@ -695,17 +750,29 @@
+@@ -695,17 +747,29 @@
          return true;
      }
  
@@ -177,20 +224,61 @@
          else
          {
              Entity entity = this.world.getClosestPlayerToEntity(this, -1.0D);
-@@ -740,6 +807,12 @@
-         this.world.profiler.startSection("checkDespawn");
+@@ -733,45 +797,27 @@
+             }
+         }
+     }
+-
+-    protected final void updateEntityActionState()
+-    {
++    protected final void updateEntityActionState() {
+         ++this.idleTime;
+-        this.world.profiler.startSection("checkDespawn");
          this.despawnEntity();
-         this.world.profiler.endSection();
+-        this.world.profiler.endSection();
+-        this.world.profiler.startSection("sensing");
 +        // Spigot Start
-+        if (this.fromMobSpawner)
-+        {
++        if (this.fromMobSpawner) {
 +            return;
 +        }
 +        // Spigot End
-         this.world.profiler.startSection("sensing");
          this.senses.clearSensingCache();
-         this.world.profiler.endSection();
-@@ -839,7 +912,6 @@
+-        this.world.profiler.endSection();
+-        this.world.profiler.startSection("targetSelector");
+         this.targetTasks.onUpdateTasks();
+-        this.world.profiler.endSection();
+-        this.world.profiler.startSection("goalSelector");
+         this.tasks.onUpdateTasks();
+-        this.world.profiler.endSection();
+-        this.world.profiler.startSection("navigation");
+         this.navigator.onUpdateNavigation();
+-        this.world.profiler.endSection();
+-        this.world.profiler.startSection("mob tick");
+         this.updateAITasks();
+-        this.world.profiler.endSection();
+-
+-        if (this.isRiding() && this.getRidingEntity() instanceof EntityLiving)
+-        {
+-            EntityLiving entityliving = (EntityLiving)this.getRidingEntity();
++        if (this.isRiding() && this.getRidingEntity() instanceof EntityLiving) {
++            EntityLiving entityliving = (EntityLiving) this.getRidingEntity();
+             entityliving.getNavigator().setPath(this.getNavigator().getPath(), 1.5D);
+             entityliving.getMoveHelper().read(this.getMoveHelper());
+         }
+-
+-        this.world.profiler.startSection("controls");
+-        this.world.profiler.startSection("move");
+         this.moveHelper.onUpdateMoveHelper();
+-        this.world.profiler.endStartSection("look");
+         this.lookHelper.onUpdateLook();
+-        this.world.profiler.endStartSection("jump");
+         this.jumpHelper.doJump();
+-        this.world.profiler.endSection();
+-        this.world.profiler.endSection();
+     }
+ 
+     protected void updateAITasks()
+@@ -839,7 +885,6 @@
          return !this.world.containsAnyLiquid(this.getEntityBoundingBox()) && this.world.getCollisionBoxes(this, this.getEntityBoundingBox()).isEmpty() && this.world.checkNoEntityCollision(this.getEntityBoundingBox(), this);
      }
  
@@ -198,7 +286,7 @@
      public float getRenderSizeModifier()
      {
          return 1.0F;
-@@ -991,6 +1063,8 @@
+@@ -991,6 +1036,8 @@
  
      public static EntityEquipmentSlot getSlotForItemStack(ItemStack stack)
      {
@@ -207,7 +295,7 @@
          if (stack.getItem() != Item.getItemFromBlock(Blocks.PUMPKIN) && stack.getItem() != Items.SKULL)
          {
              if (stack.getItem() instanceof ItemArmor)
-@@ -1003,7 +1077,7 @@
+@@ -1003,7 +1050,7 @@
              }
              else
              {
@@ -216,7 +304,7 @@
              }
          }
          else
-@@ -1178,12 +1252,12 @@
+@@ -1178,12 +1225,12 @@
  
      public boolean canPickUpLoot()
      {
@@ -231,7 +319,7 @@
      }
  
      public boolean isNoDespawnRequired()
-@@ -1195,6 +1269,10 @@
+@@ -1195,6 +1242,10 @@
      {
          if (this.getLeashed() && this.getLeashHolder() == player)
          {
@@ -242,7 +330,7 @@
              this.clearLeashed(true, !player.capabilities.isCreativeMode);
              return true;
          }
-@@ -1204,6 +1282,10 @@
+@@ -1204,6 +1255,10 @@
  
              if (itemstack.getItem() == Items.LEAD && this.canBeLeashedTo(player))
              {
@@ -253,7 +341,7 @@
                  this.setLeashHolder(player, true);
                  itemstack.shrink(1);
                  return true;
-@@ -1231,11 +1313,13 @@
+@@ -1231,11 +1286,13 @@
          {
              if (!this.isEntityAlive())
              {
@@ -267,7 +355,7 @@
                  this.clearLeashed(true, true);
              }
          }
-@@ -1250,7 +1334,9 @@
+@@ -1250,7 +1307,9 @@
  
              if (!this.world.isRemote && dropLead)
              {
@@ -277,7 +365,7 @@
              }
  
              if (!this.world.isRemote && sendPacket && this.world instanceof WorldServer)
-@@ -1334,6 +1420,7 @@
+@@ -1334,6 +1393,7 @@
              }
              else
              {
@@ -285,7 +373,7 @@
                  this.clearLeashed(false, true);
              }
          }
-@@ -1434,5 +1521,19 @@
+@@ -1434,5 +1494,19 @@
          ON_GROUND,
          IN_AIR,
          IN_WATER;

@@ -1,6 +1,6 @@
 --- ../src-base/minecraft/net/minecraft/network/NetworkManager.java
 +++ ../src-work/minecraft/net/minecraft/network/NetworkManager.java
-@@ -26,12 +26,14 @@
+@@ -26,12 +26,15 @@
  import io.netty.util.AttributeKey;
  import io.netty.util.concurrent.Future;
  import io.netty.util.concurrent.GenericFutureListener;
@@ -8,6 +8,7 @@
  import java.net.InetAddress;
  import java.net.SocketAddress;
  import java.util.Queue;
++import java.util.concurrent.ForkJoinPool;
  import java.util.concurrent.locks.ReentrantReadWriteLock;
  import javax.annotation.Nullable;
  import javax.crypto.SecretKey;
@@ -15,7 +16,7 @@
  import net.minecraft.util.CryptManager;
  import net.minecraft.util.ITickable;
  import net.minecraft.util.LazyLoadBase;
-@@ -46,201 +48,162 @@
+@@ -46,201 +49,162 @@
  import org.apache.logging.log4j.Marker;
  import org.apache.logging.log4j.MarkerManager;
  
@@ -278,7 +279,7 @@
                          channelfuture1.addListeners(futureListeners);
                      }
  
-@@ -250,89 +213,71 @@
+@@ -250,89 +214,76 @@
          }
      }
  
@@ -286,19 +287,26 @@
 -    {
 -        if (this.channel != null && this.channel.isOpen())
 -        {
-+    private void flushOutboundQueue() {
-+        if (this.channel != null && this.channel.isOpen()) {
-             this.readWriteLock.readLock().lock();
+-            this.readWriteLock.readLock().lock();
++    private static final ForkJoinPool flushingPool = new ForkJoinPool();
  
 -            try
 -            {
 -                while (!this.outboundPacketsQueue.isEmpty())
 -                {
 -                    NetworkManager.InboundHandlerTuplePacketListener networkmanager$inboundhandlertuplepacketlistener = this.outboundPacketsQueue.poll();
+-                    this.dispatchPacket(networkmanager$inboundhandlertuplepacketlistener.packet, networkmanager$inboundhandlertuplepacketlistener.futureListeners);
++    private void flushOutboundQueue() {
++        if (this.channel != null && this.channel.isOpen()) {
++            this.readWriteLock.readLock().lock();
 +            try {
-+                while (!this.outboundPacketsQueue.isEmpty()) {
-+                    InboundHandlerTuplePacketListener networkmanager$inboundhandlertuplepacketlistener = this.outboundPacketsQueue.poll();
-                     this.dispatchPacket(networkmanager$inboundhandlertuplepacketlistener.packet, networkmanager$inboundhandlertuplepacketlistener.futureListeners);
++                while (true){
++                    InboundHandlerTuplePacketListener ihtpl = this.outboundPacketsQueue.poll();
++                    if (ihtpl!=null){
++                        this.dispatchPacket(ihtpl.packet,ihtpl.futureListeners);
++                    }else{
++                        break;
++                    }
                  }
 -            }
 -            finally
@@ -396,7 +404,7 @@
                      ;
                  }
  
-@@ -343,126 +288,105 @@
+@@ -343,126 +294,105 @@
      }
  
      @SideOnly(Side.CLIENT)

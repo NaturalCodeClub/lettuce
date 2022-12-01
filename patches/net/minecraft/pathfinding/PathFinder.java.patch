@@ -19,7 +19,7 @@
 +public class PathFinder {
      private final PathHeap path = new PathHeap();
 -    private final Set<PathPoint> closedSet = Sets.<PathPoint>newHashSet();
-+    private final Set<PathPoint> closedSet = Sets.newConcurrentHashSet();
++    private final Set<PathPoint> closedSet = ConcurrentHashMap.newKeySet();
      private final PathPoint[] pathOptions = new PathPoint[32];
      private final NodeProcessor nodeProcessor;
  

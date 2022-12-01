@@ -180,3 +180,14 @@
          }
  
          PathPoint pathpoint4 = this.pathPoints[startIdx];
+@@ -796,6 +868,10 @@
+         {
+             PathPoint pathpoint2 = this.pathFindQueue.dequeue();
+ 
++            if (pathpoint2 == null){
++                continue;
++            }
++
+             if (pathpoint2.equals(pathpoint5))
+             {
+                 if (andThen != null)

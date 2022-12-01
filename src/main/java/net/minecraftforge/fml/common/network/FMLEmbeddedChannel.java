@@ -55,8 +55,8 @@ public class FMLEmbeddedChannel extends EmbeddedChannel {
         this.pipeline().addFirst("fml:outbound",new FMLOutboundHandler());
     }
 
-    private final Object genLock = new Object();
 
+    private final Object mutex = new Object();
     /**
      * Utility method to generate a regular packet from a custom packet. Basically, it writes the packet through the
      * outbound side which should have a message to message codec present (such as {@link FMLIndexedMessageToMessageCodec},
@@ -69,14 +69,18 @@ public class FMLEmbeddedChannel extends EmbeddedChannel {
      */
     public Packet<?> generatePacketFrom(Object object)
     {
-        //Add lock to ensure thread safe
-        synchronized (this.genLock){
-            OutboundTarget outboundTarget = attr(FMLOutboundHandler.FML_MESSAGETARGET).getAndSet(OutboundTarget.NOWHERE);
-            writeOutbound(object);
-            Packet<?> pkt = (Packet<?>) outboundMessages().poll();
-            attr(FMLOutboundHandler.FML_MESSAGETARGET).set(outboundTarget);
-            return pkt;
+        Packet<?> pkt = null;
+        synchronized (mutex) {
+            try {
+                OutboundTarget outboundTarget = attr(FMLOutboundHandler.FML_MESSAGETARGET).getAndSet(OutboundTarget.NOWHERE);
+                writeOutbound(object);
+                pkt = (Packet<?>) outboundMessages().poll();
+                attr(FMLOutboundHandler.FML_MESSAGETARGET).set(outboundTarget);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
         }
+        return pkt;
     }
 
     @Nullable

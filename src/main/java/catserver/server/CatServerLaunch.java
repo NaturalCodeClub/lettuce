@@ -1,19 +1,15 @@
 package catserver.server;
 
 import catserver.server.launch.Java11Support;
-import catserver.server.launch.Java14Support;
 import catserver.server.launch.LibrariesManager;
 import catserver.server.utils.LanguageUtils;
 
 import java.net.URLClassLoader;
 
 public class CatServerLaunch {
-    private static final boolean skipCheckLibraries = Boolean.parseBoolean(System.getProperty("catserver.skipCheckLibraries"));
-
     public static void main(String[] args) throws Throwable {
-        System.out.println("Loading libraries, please wait...");
         checkJavaVersion();
-        if (!skipCheckLibraries) LibrariesManager.checkLibraries();
+        if (!"true".equals(System.getProperty("catserver.skipCheckLibraries"))) LibrariesManager.checkLibraries();
         Class.forName("net.minecraftforge.fml.relauncher.ServerLaunchWrapper").getDeclaredMethod("main", String[].class).invoke(null, new Object[] { args });
     }
 
@@ -24,7 +20,6 @@ public class CatServerLaunch {
                 System.out.println(LanguageUtils.I18nToString("launch.java11_compatibility"));
                 Thread.sleep(5000);
                 Java11Support.setup();
-                Java14Support.setup();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.exit(1);

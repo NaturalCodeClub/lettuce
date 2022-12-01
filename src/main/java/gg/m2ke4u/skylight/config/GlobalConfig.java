@@ -7,7 +7,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 
 public class GlobalConfig {
-    public static final File CONFIG_DIR = new File("lettuce-configs");
+    public static final File CONFIG_DIR = new File("skylight-configs");
     public static final File CONFIG_FILE = new File(CONFIG_DIR,"global.yml");
     private static final Logger logger = LogManager.getLogger();
     public static final YamlConfiguration CONFIGURATION = new YamlConfiguration();
@@ -27,7 +27,6 @@ public class GlobalConfig {
             if (!CONFIG_FILE.exists()){
                 CONFIG_FILE.createNewFile();
                 CONFIGURATION.options().copyDefaults(true);
-                CONFIGURATION.options().header("Warn:未实现");
 
                 ConfigurationSection MISC_SECTION = CONFIGURATION.createSection("misc");
 
@@ -36,7 +35,7 @@ public class GlobalConfig {
 
                 CONFIGURATION.load(CONFIG_FILE);
                 CONFIGURATION.save(CONFIG_FILE);
-                logger.info("[lettuce]Global config inited!");
+                logger.info("[skylight]Global config inited!");
                 return;
             }
             CONFIGURATION.load(CONFIG_FILE);
@@ -46,7 +45,7 @@ public class GlobalConfig {
 
             FORGE_EVENT_RETURN_TO_MAIN = MISC_SECTION.getBoolean("forge-events-to-main");
             BUKKIT_EVENT_RETURN_TO_MAIN = MISC_SECTION.getBoolean("bukkit-events-to-main");
-            logger.info("[lettuce]Global config loaded!");
+            logger.info("[skylight]Global config loaded!");
         }catch (Exception e){
             logger.error(e);
         }

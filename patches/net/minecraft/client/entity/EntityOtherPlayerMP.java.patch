@@ -8,3 +8,13 @@
          return true;
      }
  
+@@ -122,9 +123,7 @@
+ 
+         this.cameraYaw += (f1 - this.cameraYaw) * 0.4F;
+         this.cameraPitch += (f - this.cameraPitch) * 0.8F;
+-        this.world.profiler.startSection("push");
+         this.collideWithNearbyEntities();
+-        this.world.profiler.endSection();
+     }
+ 
+     public void sendMessage(ITextComponent component)
